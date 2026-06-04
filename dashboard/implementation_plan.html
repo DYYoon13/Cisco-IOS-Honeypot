@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cowrie Cisco IOS Honeypot — Log Dashboard Web App — Implementation Plan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --accent: #00ff88;
+    --cyan: #06b6d4;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-top: 40px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--cyan);
+    padding-left: 12px;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 28px;
+    margin-bottom: 12px;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--amber);
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  p { margin-bottom: 12px; }
+
+  ul, ol {
+    margin-left: 24px;
+    margin-bottom: 12px;
+  }
+
+  li { margin-bottom: 6px; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: #0d1117;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--accent);
+  }
+
+  pre {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    line-height: 1.5;
+    color: #c9d1d9;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 20px;
+    font-size: 0.9em;
+  }
+
+  th {
+    background: var(--card);
+    color: var(--cyan);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+  }
+
+  td {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) { background: rgba(30, 41, 59, 0.5); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+
+  .alert {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-left: 4px solid;
+  }
+
+  .alert-important {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--blue);
+  }
+
+  .alert-important::before {
+    content: "ℹ️ IMPORTANT: ";
+    font-weight: 700;
+    color: var(--blue);
+  }
+
+  .alert-warning {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: var(--amber);
+  }
+
+  .alert-warning::before {
+    content: "⚠️ WARNING: ";
+    font-weight: 700;
+    color: var(--amber);
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  .diagram-box {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 16px 0;
+    text-align: center;
+  }
+
+  .diagram-box pre {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    display: inline-block;
+  }
+
+  .ui-mockup {
+    background: #0d1117;
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+  }
+
+  .ui-mockup pre {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: var(--accent);
+    font-size: 0.78em;
+    line-height: 1.4;
+  }
+
+  .file-tag {
+    display: inline-block;
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .file-new { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+  .file-modify { background: rgba(245, 158, 11, 0.2); color: var(--amber); }
+
+  .header-meta {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-bottom: 32px;
+  }
+
+  @media print {
+    body { background: white; color: #1a1a1a; padding: 20px; }
+    h1 { color: #059669; border-color: #059669; }
+    h2 { color: #0891b2; border-color: #0891b2; }
+    h4 { color: #d97706; }
+    code { background: #f3f4f6; color: #059669; }
+    pre { background: #f8fafc; border-color: #e2e8f0; color: #1a1a1a; }
+    th { background: #f1f5f9; color: #0891b2; }
+    td, th { border-color: #e2e8f0; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .card { background: #f8fafc; border-color: #e2e8f0; }
+    .alert-important { background: #eff6ff; }
+    .alert-warning { background: #fffbeb; }
+    .diagram-box, .ui-mockup { background: #f8fafc; border-color: #e2e8f0; }
+    .ui-mockup { border-color: #059669; box-shadow: none; }
+    .ui-mockup pre { color: #1a1a1a; }
+    .file-new { background: #d1fae5; color: #059669; }
+    .file-modify { background: #fef3c7; color: #d97706; }
+  }
+
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+</style>
+</head>
+<body>
+
+<h1>🛡️ Cowrie Cisco IOS Honeypot — Log Dashboard Web App</h1>
+
+<div class="header-meta">
+  <strong>Project:</strong> Honeypot_Playground &nbsp;|&nbsp;
+  <strong>Date:</strong> June 4, 2026 &nbsp;|&nbsp;
+  <strong>Author:</strong> Auto-generated Implementation Plan
+</div>
+
+<h2>Overview</h2>
+<p>สร้าง Web Application สำหรับเก็บและแสดงผล Log จาก Cowrie Honeypot ที่จำลองเป็น Cisco IOS Router โดยมี GUI แบบ Dashboard ที่แสดงข้อมูลแบบ Real-time ได้แก่:</p>
+<ul>
+  <li><strong>IP Address</strong> ของผู้เข้ามา</li>
+  <li><strong>คำสั่งที่พิมพ์</strong> (commands input)</li>
+  <li><strong>การตอบกลับของระบบ</strong> (system response)</li>
+  <li><strong>สถิติจำนวนคนที่เข้ามา</strong> (session count, unique IPs)</li>
+  <li><strong>สถิติคำสั่งแต่ละคำสั่ง</strong> (command frequency)</li>
+</ul>
+
+<h2>Architecture</h2>
+
+<div class="diagram-box">
+<pre>
+┌─────────────────┐      ┌─────────────────────┐      ┌──────────────┐
+│   Attacker SSH  │─────▶│  Cowrie Honeypot     │─────▶│   SQLite     │
+│   (Port 2222)   │      │  (Cisco IOS Emu)     │      │   Database   │
+└─────────────────┘      └─────────────────────┘      └──────┬───────┘
+                                                             │
+                         ┌─────────────────────┐             │ Read
+                         │   Flask API Server   │◀────────────┘
+                         │   (Port 5000)        │
+                         └──────────┬──────────┘
+                                    │ REST API
+                         ┌──────────▼──────────┐
+                         │   Web Dashboard      │
+                         │   (Browser)          │
+                         └─────────────────────┘
+</pre>
+</div>
+
+<h3>Tech Stack</h3>
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Reason</th></tr>
+  <tr><td><strong>Honeypot</strong></td><td>Cowrie (existing)</td><td>Cisco IOS emulation ที่มีอยู่แล้ว</td></tr>
+  <tr><td><strong>Data Store</strong></td><td>SQLite</td><td>ใช้ output plugin sqlite.py ที่ Cowrie มีอยู่แล้ว + เพิ่มตารางใหม่</td></tr>
+  <tr><td><strong>Backend API</strong></td><td>Flask (Python)</td><td>เบา, เข้ากับ Python ecosystem ของ Cowrie ได้ดี</td></tr>
+  <tr><td><strong>Frontend</strong></td><td>HTML + Vanilla CSS + JS</td><td>ตามข้อกำหนด, ไม่ต้องใช้ framework</td></tr>
+  <tr><td><strong>Charts</strong></td><td>Chart.js (CDN)</td><td>สร้าง chart ได้สวยงาม, ไม่ต้อง install</td></tr>
+</table>
+
+<hr>
+
+<h2>User Review Required</h2>
+
+<div class="alert alert-important">
+  <strong>การเก็บ Response ของระบบ</strong>: ปัจจุบัน Cowrie เก็บเฉพาะ <code>cowrie.command.input</code> (คำสั่งที่พิมพ์) แต่<strong>ไม่ได้เก็บ output/response</strong> ที่ส่งกลับไปให้ผู้โจมตี จำเป็นต้องแก้ไข core ของ Cowrie เล็กน้อยเพื่อ capture response — เราจะเพิ่ม event ใหม่ <code>cowrie.command.output</code> ใน shell layer
+</div>
+
+<div class="alert alert-warning">
+  <strong>Performance</strong>: การเก็บ command output จะเพิ่มขนาด database อย่างมีนัยสำคัญ โดยเฉพาะคำสั่ง <code>show running-config</code> ที่ output ยาวมาก เราจะ truncate ที่ 4KB ต่อ response
+</div>
+
+<h2>Open Questions</h2>
+<ol>
+  <li><strong>ต้องการ Real-time update (WebSocket/SSE) หรือ polling ทุก X วินาที?</strong><br>
+    Plan นี้จะใช้ polling ทุก 5 วินาที ซึ่งง่ายกว่า ถ้าต้องการ real-time จริงๆ สามารถเพิ่ม WebSocket ได้ภายหลัง</li>
+  <li><strong>ต้องการ Authentication สำหรับหน้า Dashboard ไหม?</strong><br>
+    Plan นี้จะยังไม่ใส่ auth เนื่องจากเป็น internal tool, สามารถเพิ่มได้ภายหลัง</li>
+  <li><strong>ต้องการเก็บ Log ย้อนหลังกี่วัน?</strong><br>
+    Default จะเก็บทั้งหมดไม่ลบ, แต่ Dashboard จะ filter ได้ตามช่วงเวลา</li>
+</ol>
+
+<hr>
+
+<h2>Proposed Changes</h2>
+
+<h3>Component 1: Database Schema (SQLite)</h3>
+<p>จะใช้ Cowrie SQLite output plugin ที่มีอยู่แล้ว แต่เพิ่มตาราง <code>command_logs</code> สำหรับเก็บ command + response คู่กัน</p>
+
+<h4><span class="file-tag file-new">NEW</span> schema.sql</h4>
+<pre>-- ตารางหลักสำหรับ Dashboard
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    src_ip TEXT NOT NULL,
+    start_time DATETIME NOT NULL,
+    end_time DATETIME,
+    protocol TEXT DEFAULT 'ssh',
+    client_version TEXT,
+    username TEXT,
+    password TEXT
+);
+
+CREATE TABLE IF NOT EXISTS command_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    src_ip TEXT NOT NULL,
+    command TEXT NOT NULL,
+    response TEXT,              -- ผลลัพธ์ที่ระบบตอบกลับ
+    success BOOLEAN DEFAULT 1,
+    cisco_mode TEXT,            -- user/privileged/config
+    FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+CREATE TABLE IF NOT EXISTS auth_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    src_ip TEXT NOT NULL,
+    username TEXT NOT NULL,
+    password TEXT NOT NULL,
+    success BOOLEAN NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+-- Indexes for Dashboard queries
+CREATE INDEX IF NOT EXISTS idx_cmd_session ON command_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_cmd_timestamp ON command_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_cmd_command ON command_logs(command);
+CREATE INDEX IF NOT EXISTS idx_session_ip ON sessions(src_ip);
+CREATE INDEX IF NOT EXISTS idx_session_time ON sessions(start_time);</pre>
+
+<hr>
+
+<h3>Component 2: Cowrie Output Plugin</h3>
+
+<h4><span class="file-tag file-new">NEW</span> dashboard_output.py</h4>
+<p>Plugin ใหม่ที่รับ events จาก Cowrie core แล้วเขียนลง SQLite database สำหรับ Dashboard:</p>
+<ul>
+  <li><code>cowrie.session.connect</code> → สร้าง session record</li>
+  <li><code>cowrie.command.input</code> → บันทึกคำสั่ง</li>
+  <li><code>cowrie.command.output</code> → บันทึก response (event ใหม่)</li>
+  <li><code>cowrie.login.success/failed</code> → บันทึก auth attempts</li>
+  <li><code>cowrie.session.closed</code> → update session end time</li>
+</ul>
+
+<hr>
+
+<h3>Component 3: Cowrie Core Modification</h3>
+
+<h4><span class="file-tag file-modify">MODIFY</span> honeypot.py</h4>
+<p>เพิ่ม logging ของ command output ใน <code>lineReceived</code> flow — หลังจาก command execute เสร็จจะ emit event <code>cowrie.command.output</code></p>
+
+<h4><span class="file-tag file-modify">MODIFY</span> pipe.py</h4>
+<p>Intercept output ที่ส่งกลับไปยัง terminal เพื่อ capture เป็น event</p>
+
+<hr>
+
+<h3>Component 4: Flask Backend API</h3>
+
+<h4><span class="file-tag file-new">NEW</span> app.py</h4>
+
+<table>
+  <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+  <tr><td><code>/api/stats/overview</code></td><td>GET</td><td>สรุปรวม: total sessions, unique IPs, total commands, active sessions</td></tr>
+  <tr><td><code>/api/stats/commands</code></td><td>GET</td><td>Top commands frequency (bar chart data)</td></tr>
+  <tr><td><code>/api/stats/timeline</code></td><td>GET</td><td>Session count per hour/day (line chart data)</td></tr>
+  <tr><td><code>/api/stats/top-ips</code></td><td>GET</td><td>Top attacker IPs with session count</td></tr>
+  <tr><td><code>/api/sessions</code></td><td>GET</td><td>รายการ sessions ทั้งหมด (paginated)</td></tr>
+  <tr><td><code>/api/sessions/&lt;id&gt;</code></td><td>GET</td><td>Session detail + commands + responses</td></tr>
+  <tr><td><code>/api/commands/recent</code></td><td>GET</td><td>50 คำสั่งล่าสุด (for live feed)</td></tr>
+  <tr><td><code>/api/auth-attempts</code></td><td>GET</td><td>Login attempts (username/password combos)</td></tr>
+</table>
+
+<p><strong>Query parameters</strong> ทุก endpoint: <code>from</code>, <code>to</code> (filter ช่วงเวลา), <code>ip</code> (filter ตาม IP), <code>limit</code>, <code>offset</code> (pagination)</p>
+
+<hr>
+
+<h3>Component 5: Frontend Dashboard</h3>
+
+<h4><span class="file-tag file-new">NEW</span> index.html + styles.css + dashboard.js</h4>
+
+<div class="ui-mockup">
+<pre>
+┌─────────────────────────────────────────────────────────────┐
+│  🛡️ Cisco IOS Honeypot Dashboard                 [🔴 Live] │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐   │
+│  │ Sessions  │ │ Unique IP │ │ Commands  │ │  Active   │   │
+│  │   142     │ │    38     │ │   891     │ │    3      │   │
+│  └───────────┘ └───────────┘ └───────────┘ └───────────┘   │
+│                                                             │
+│  ┌──────────────────────────┐ ┌──────────────────────────┐  │
+│  │  📈 Sessions Over Time   │ │  📊 Top Commands         │  │
+│  │     (Line Chart)         │ │     (Bar Chart)          │  │
+│  └──────────────────────────┘ └──────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────┐ ┌──────────────────────────┐  │
+│  │  🌐 Top Attacker IPs     │ │  🔑 Login Attempts       │  │
+│  │     (Table)              │ │     (Table)              │  │
+│  └──────────────────────────┘ └──────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  📡 Live Command Feed                                │   │
+│  │  12:05:23 │ 45.33.x.x  │ show version               │   │
+│  │  12:05:25 │ 45.33.x.x  │ enable                     │   │
+│  │  12:05:28 │ 45.33.x.x  │ show running-config        │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  📋 Session Detail (click to expand)                 │   │
+│  │  Router> show version                                │   │
+│  │  Cisco IOS Software, C2951 Software...               │   │
+│  │  Router> enable                                      │   │
+│  │  Router# show ip interface brief                     │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<h4>Design System</h4>
+<ul>
+  <li><strong>Theme</strong>: Dark mode ธีม "network terminal" — สีเขียว/cyan บน background เข้ม คล้ายหน้าจอ terminal ของ Cisco</li>
+  <li><strong>Typography</strong>: <code>JetBrains Mono</code> สำหรับ command/code, <code>Inter</code> สำหรับ UI text</li>
+  <li><strong>Colors</strong>: Background <code>#0a0e17</code>, Cards <code>#111827</code> + glassmorphism, Accent <code>#00ff88</code>, Cyan <code>#06b6d4</code></li>
+  <li><strong>Effects</strong>: Glassmorphism cards, subtle glow effects, smooth animations, terminal-style monospace</li>
+</ul>
+
+<hr>
+
+<h3>Component 6: Docker Integration</h3>
+
+<h4><span class="file-tag file-modify">MODIFY</span> docker-compose.yml</h4>
+<p>เพิ่ม service สำหรับ Dashboard:</p>
+<pre>dashboard:
+  build:
+    context: ..
+    dockerfile: dashboard/Dockerfile
+  ports:
+    - "5000:5000"
+  volumes:
+    - cowrie-var:/cowrie/cowrie-git/var
+  depends_on:
+    - cowrie</pre>
+
+<h4><span class="file-tag file-new">NEW</span> Dockerfile (dashboard)</h4>
+
+<h4><span class="file-tag file-modify">MODIFY</span> cowrie.cfg</h4>
+<pre>[output_dashboard]
+enabled = true
+db_file = var/lib/cowrie/dashboard.db</pre>
+
+<hr>
+
+<h2>File Structure</h2>
+<pre>
+Honeypot_Playground/
+├── dashboard/
+│   ├── Dockerfile                  # Dashboard container
+│   ├── app.py                      # Flask backend
+│   ├── requirements-dashboard.txt  # Python deps
+│   ├── schema.sql                  # Database schema
+│   └── static/
+│       ├── index.html              # Main dashboard page
+│       ├── styles.css              # Design system + styles
+│       └── dashboard.js            # Frontend logic + charts
+├── src/cowrie/
+│   ├── output/
+│   │   └── dashboard_output.py     # New output plugin
+│   └── shell/
+│       ├── honeypot.py             # Modified: capture response
+│       └── pipe.py                 # Modified: intercept output
+├── docker/
+│   └── docker-compose.yml          # Modified: add dashboard service
+└── etc/
+    └── cowrie.cfg                   # Modified: enable dashboard plugin
+</pre>
+
+<hr>
+
+<h2>Verification Plan</h2>
+
+<h3>Automated Tests</h3>
+<ol>
+  <li><strong>Database Schema</strong>: รัน <code>schema.sql</code> กับ SQLite ตรวจว่าสร้างตารางได้ถูกต้อง</li>
+  <li><strong>Flask API</strong>: เขียน test data ลง database แล้ว test ทุก endpoint</li>
+  <li><strong>Frontend</strong>: เปิด browser ตรวจ UI</li>
+</ol>
+
+<h3>Manual Verification</h3>
+<ol>
+  <li><strong>End-to-End</strong>:
+    <ul>
+      <li>Start Cowrie + Dashboard ผ่าน docker-compose</li>
+      <li>SSH เข้า honeypot: <code>ssh cowrie</code></li>
+      <li>พิมพ์คำสั่ง Cisco: <code>show version</code>, <code>enable</code>, <code>show running-config</code></li>
+      <li>ตรวจ Dashboard ว่าแสดง session, commands, responses ถูกต้อง</li>
+    </ul>
+  </li>
+  <li><strong>Statistics</strong>: ตรวจว่า charts และ stat cards update ตามข้อมูลจริง</li>
+  <li><strong>Responsive</strong>: ตรวจ UI บน desktop และ mobile viewport</li>
+</ol>
+
+</body>
+</html>
