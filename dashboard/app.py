@@ -35,7 +35,7 @@ def get_db() -> sqlite3.Connection:
     if "db" not in g:
         g.db = sqlite3.connect(DB_FILE)
         g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA journal_mode=WAL")
+        g.db.execute("PRAGMA journal_mode=TRUNCATE")
     return g.db
 
 

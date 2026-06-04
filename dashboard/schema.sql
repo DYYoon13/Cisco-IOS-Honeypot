@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS command_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
     timestamp DATETIME NOT NULL,
-    src_ip TEXT NOT NULL,
+    src_ip TEXT,
     command TEXT NOT NULL,
     response TEXT,              -- ผลลัพธ์ที่ระบบตอบกลับ (truncated at 4KB)
     success BOOLEAN DEFAULT 1,
@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS auth_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
     timestamp DATETIME NOT NULL,
-    src_ip TEXT NOT NULL,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL,
+    src_ip TEXT,
+    username TEXT,
+    password TEXT,
     success BOOLEAN NOT NULL,
     FOREIGN KEY (session_id) REFERENCES sessions(id)
 );

@@ -52,6 +52,7 @@ class Output(cowrie.core.output.Output):
                 "sqlite3",
                 database=db_file,
                 check_same_thread=False,
+                cp_openfun=lambda conn: conn.execute("PRAGMA journal_mode=TRUNCATE")
             )
         except sqlite3.OperationalError as e:
             log.msg(f"[dashboard] Failed to open database: {e}")
@@ -80,7 +81,7 @@ class Output(cowrie.core.output.Output):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL,
             timestamp DATETIME NOT NULL,
-            src_ip TEXT NOT NULL,
+            src_ip TEXT,
             command TEXT NOT NULL,
             response TEXT,
             success BOOLEAN DEFAULT 1,
@@ -92,9 +93,9 @@ class Output(cowrie.core.output.Output):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL,
             timestamp DATETIME NOT NULL,
-            src_ip TEXT NOT NULL,
-            username TEXT NOT NULL,
-            password TEXT NOT NULL,
+            src_ip TEXT,
+            username TEXT,
+            password TEXT,
             success BOOLEAN NOT NULL,
             FOREIGN KEY (session_id) REFERENCES sessions(id)
         );
@@ -131,6 +132,7 @@ class Output(cowrie.core.output.Output):
     @defer.inlineCallbacks
     def write(self, event: dict[str, Any]) -> None:
         eid = event["eventid"]
+        log.msg(f"[dashboard] write() called for eventid: {eid}")
 
         if eid == "cowrie.session.connect":
             self._simple_query(
@@ -152,14 +154,14 @@ class Output(cowrie.core.output.Output):
                     event["session"],
                     event["timestamp"],
                     event.get("src_ip", ""),
-                    event["username"],
-                    event["password"],
+                    event.get("username", ""),
+                    event.get("password", ""),
                 ),
             )
             # Also update the session with username/password
             self._simple_query(
                 "UPDATE sessions SET username = ?, password = ? WHERE id = ?",
-                (event["username"], event["password"], event["session"]),
+                (event.get("username", ""), event.get("password", ""), event["session"]),
             )
 
         elif eid == "cowrie.login.failed":
@@ -170,8 +172,8 @@ class Output(cowrie.core.output.Output):
                     event["session"],
                     event["timestamp"],
                     event.get("src_ip", ""),
-                    event["username"],
-                    event["password"],
+                    event.get("username", ""),
+                    event.get("password", ""),
                 ),
             )
 
@@ -184,7 +186,7 @@ class Output(cowrie.core.output.Output):
                     event["session"],
                     event["timestamp"],
                     event.get("src_ip", ""),
-                    event["input"],
+                    event.get("input", ""),
                     cisco_mode,
                 ),
             )
