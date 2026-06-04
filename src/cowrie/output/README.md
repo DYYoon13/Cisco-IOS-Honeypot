@@ -18,5 +18,3 @@ methods 'start', 'stop' and 'write'
         def stop(self):
 
         def write( self, event ):
-
-

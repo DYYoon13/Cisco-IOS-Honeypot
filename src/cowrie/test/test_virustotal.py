@@ -459,7 +459,8 @@ class VirusTotalOutputTests(unittest.TestCase):
         # Check method and URL
         self.assertEqual(method, b"POST")
         self.assertEqual(
-            url, b"https://www.virustotal.com/api/v3/collections/test-collection-id/files"
+            url,
+            b"https://www.virustotal.com/api/v3/collections/test-collection-id/files",
         )
 
         # Check body format
@@ -489,7 +490,8 @@ class VirusTotalOutputTests(unittest.TestCase):
         # Check method and URL
         self.assertEqual(method, b"POST")
         self.assertEqual(
-            url, b"https://www.virustotal.com/api/v3/collections/test-collection-id/urls"
+            url,
+            b"https://www.virustotal.com/api/v3/collections/test-collection-id/urls",
         )
 
         # Check body format

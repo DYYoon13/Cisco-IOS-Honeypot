@@ -101,7 +101,9 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
         else:
             try:
                 with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
-                    s.connect(("2001:4860:4860::8888", 80))  # NOSONAR - probe target to detect host GUA, not a secret
+                    s.connect(
+                        ("2001:4860:4860::8888", 80)
+                    )  # NOSONAR - probe target to detect host GUA, not a secret
                     addr = s.getsockname()[0]
                     # Only use GUA, not link-local
                     self.kippoIPv6 = addr if not addr.lower().startswith("fe80") else ""

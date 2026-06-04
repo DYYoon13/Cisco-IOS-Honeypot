@@ -133,7 +133,7 @@ optional arguments:
 
 ```sh
 # Default output:
-python3 ja4.py capturefile.pcapng 
+python3 ja4.py capturefile.pcapng
 
 # JSON output:
 python3 ja4.py capturefile.pcapng -J
@@ -229,7 +229,7 @@ Run `ja4.py` with a key file:
 ja4.py capturefile.pcapng -key sslkeylog.log
 ```
 
-For details on generating an SSL key log file, see:  
+For details on generating an SSL key log file, see:
 [Wireshark Wiki: Using the (Pre)-Master-Secret Log File](https://wiki.wireshark.org/TLS#using-the-pre-master-secret)
 
 **Note:** Works for TLS 1.3 only with session keys; PFS may prevent decryption.

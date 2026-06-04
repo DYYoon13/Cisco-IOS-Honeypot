@@ -89,7 +89,7 @@ class Command_dig(HoneyPotCommand):
             """Usage:  dig [@global-server] [domain] [q-type] [q-class] {q-opt}
                         {global-d-opt} host [@local-server] {local-d-opt}
                         [ host [@local-server] {local-d-opt} [...]]
-            
+
             Use "dig -h" (or "dig -h | more") for complete list of options\n"""
         )
 

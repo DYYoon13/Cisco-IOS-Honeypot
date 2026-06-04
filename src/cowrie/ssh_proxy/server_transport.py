@@ -157,7 +157,9 @@ class FrontendSSHTransport(transport.SSHServerTransport, TimeoutMixin):
         # Cache resolved endpoints for connectionLost logging
         self.backend_local_ip = backend_host.host
         self.backend_local_port = backend_host.port
-        self.backend_ip = backend_peer.host     # Sets backend_ip to its IP if backend_ip was a hostname
+        self.backend_ip = (
+            backend_peer.host
+        )  # Sets backend_ip to its IP if backend_ip was a hostname
         self.backend_port = backend_peer.port
 
         log.msg(

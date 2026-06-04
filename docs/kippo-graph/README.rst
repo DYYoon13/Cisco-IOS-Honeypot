@@ -108,5 +108,3 @@ Between the <VirtualHost> </VirtualHost> tags, add::
         AuthUserFile /etc/apache2/cowrie.passwd
         Require valid-user
     </Location>
-
-

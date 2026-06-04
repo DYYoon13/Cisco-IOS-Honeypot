@@ -128,9 +128,7 @@ class HoneyPotFilesystem:
         # A_REALFILE on matching pickle entries so file_contents reads
         # from disk. When unset (the default), every file is served from
         # the pickle's A_CONTENTS bytes.
-        contents_path = CowrieConfig.get(
-            "honeypot", "contents_path", fallback=""
-        )
+        contents_path = CowrieConfig.get("honeypot", "contents_path", fallback="")
         if contents_path:
             try:
                 self.init_honeyfs(contents_path)

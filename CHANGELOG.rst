@@ -152,8 +152,8 @@ Release 2.7.0
 
 **BREAKING CHANGES - ACTION REQUIRED:**
 
-* Install Cowrie into your virtual environment with `pip install -e .` 
-* **bin/ directory removed**: Scripts `asciinema`, `createfs`, `fsctl`, and `playlog` are no longer called from the `bin/` directory. 
+* Install Cowrie into your virtual environment with `pip install -e .`
+* **bin/ directory removed**: Scripts `asciinema`, `createfs`, `fsctl`, and `playlog` are no longer called from the `bin/` directory.
 * **Python 3.9 no longer supported**: Minimum Python version is now 3.10.
 * **SQL schema update required**: If using MySQL/SQLite databases, run the migration script `docs/sql/update16.sql` to extend IP address fields for IPv6 support (VARCHAR length increased to 61 characters).
 * **SSH-DSS key support removed**: The deprecated ssh-dss algorithm is no longer supported for improved security. Remove ssh-dss configuration if you use it.

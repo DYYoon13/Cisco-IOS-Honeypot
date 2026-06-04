@@ -70,7 +70,9 @@ class SimpleResponseReceiver(protocol.Protocol):
     def dataReceived(self, data: bytes) -> None:
         self.buf += data
 
-    def connectionLost(self, reason: tw_failure.Failure = protocol.connectionDone) -> None:
+    def connectionLost(
+        self, reason: tw_failure.Failure = protocol.connectionDone
+    ) -> None:
         self.d.callback((self.status_code, self.buf))
 
 
@@ -175,9 +177,7 @@ class LLMClient:
         response.deliverBody(SimpleResponseReceiver(response.code, d))
         return d
 
-    def _handle_connection_error(
-        self, err: tw_failure.Failure
-    ) -> tuple[int, bytes]:
+    def _handle_connection_error(self, err: tw_failure.Failure) -> tuple[int, bytes]:
         """Handle connection errors."""
         err.trap(Exception)
         return (500, err.getErrorMessage().encode("utf-8"))
@@ -201,9 +201,7 @@ class LLMClient:
         return d
 
     @inlineCallbacks
-    def get_response(
-        self, prompt: list[str]
-    ) -> Generator[Deferred[Any], Any, str]:
+    def get_response(self, prompt: list[str]) -> Generator[Deferred[Any], Any, str]:
         """
         Get a response from the LLM for the given prompt.
 

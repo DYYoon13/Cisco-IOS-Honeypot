@@ -52,7 +52,7 @@ class Output(cowrie.core.output.Output):
                 "sqlite3",
                 database=db_file,
                 check_same_thread=False,
-                cp_openfun=lambda conn: conn.execute("PRAGMA journal_mode=TRUNCATE")
+                cp_openfun=lambda conn: conn.execute("PRAGMA journal_mode=TRUNCATE"),
             )
         except sqlite3.OperationalError as e:
             log.msg(f"[dashboard] Failed to open database: {e}")
@@ -161,7 +161,11 @@ class Output(cowrie.core.output.Output):
             # Also update the session with username/password
             self._simple_query(
                 "UPDATE sessions SET username = ?, password = ? WHERE id = ?",
-                (event.get("username", ""), event.get("password", ""), event["session"]),
+                (
+                    event.get("username", ""),
+                    event.get("password", ""),
+                    event["session"],
+                ),
             )
 
         elif eid == "cowrie.login.failed":

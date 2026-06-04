@@ -25,9 +25,18 @@ now = datetime.now(timezone.utc)
 
 # --- Seed IPs ---
 attacker_ips = [
-    "45.33.32.156", "185.220.101.42", "91.92.109.87", "103.152.34.22",
-    "192.241.222.108", "178.62.43.201", "162.142.125.46", "71.6.135.131",
-    "89.248.172.16", "167.94.138.50", "23.129.64.150", "198.235.24.12",
+    "45.33.32.156",
+    "185.220.101.42",
+    "91.92.109.87",
+    "103.152.34.22",
+    "192.241.222.108",
+    "178.62.43.201",
+    "162.142.125.46",
+    "71.6.135.131",
+    "89.248.172.16",
+    "167.94.138.50",
+    "23.129.64.150",
+    "198.235.24.12",
 ]
 
 # --- Cisco Commands ---
@@ -73,7 +82,16 @@ Internet  192.168.1.254    12         0050.5678.9abc  ARPA   GigabitEthernet0/0"
 }
 
 usernames = ["admin", "cisco", "root", "administrator", "user", "test", "guest"]
-passwords = ["cisco", "cisco123", "admin", "password", "123456", "root", "admin123", "test"]
+passwords = [
+    "cisco",
+    "cisco123",
+    "admin",
+    "password",
+    "123456",
+    "root",
+    "admin123",
+    "test",
+]
 
 # --- Generate Sessions ---
 num_sessions = 85
@@ -85,23 +103,34 @@ for i in range(num_sessions):
     start_offset = random.randint(0, 7 * 24 * 3600)  # within 7 days
     start_time = now - timedelta(seconds=start_offset)
     duration = random.randint(10, 600)
-    end_time = start_time + timedelta(seconds=duration) if random.random() > 0.05 else None
+    end_time = (
+        start_time + timedelta(seconds=duration) if random.random() > 0.05 else None
+    )
     username = random.choice(usernames)
     password = random.choice(passwords)
 
-    sessions.append({
-        "id": session_id,
-        "src_ip": src_ip,
-        "start_time": start_time.isoformat(),
-        "end_time": end_time.isoformat() if end_time else None,
-        "username": username,
-        "password": password,
-    })
+    sessions.append(
+        {
+            "id": session_id,
+            "src_ip": src_ip,
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat() if end_time else None,
+            "username": username,
+            "password": password,
+        }
+    )
 
     db.execute(
         "INSERT INTO sessions (id, src_ip, start_time, end_time, protocol, username, password) "
         "VALUES (?, ?, ?, ?, 'ssh', ?, ?)",
-        (session_id, src_ip, start_time.isoformat(), end_time.isoformat() if end_time else None, username, password),
+        (
+            session_id,
+            src_ip,
+            start_time.isoformat(),
+            end_time.isoformat() if end_time else None,
+            username,
+            password,
+        ),
     )
 
     # Auth attempts (1-3 failures then 1 success)
@@ -111,7 +140,13 @@ for i in range(num_sessions):
         db.execute(
             "INSERT INTO auth_attempts (session_id, timestamp, src_ip, username, password, success) "
             "VALUES (?, ?, ?, ?, ?, 0)",
-            (session_id, auth_time.isoformat(), src_ip, random.choice(usernames), random.choice(passwords)),
+            (
+                session_id,
+                auth_time.isoformat(),
+                src_ip,
+                random.choice(usernames),
+                random.choice(passwords),
+            ),
         )
         auth_time += timedelta(seconds=random.randint(1, 5))
 
@@ -138,12 +173,22 @@ for i in range(num_sessions):
             if len(modes) > 1:
                 modes.pop()
 
-        response = cisco_responses.get(cmd_name, "" if success else "% Unknown command or computer name")
+        response = cisco_responses.get(
+            cmd_name, "" if success else "% Unknown command or computer name"
+        )
 
         db.execute(
             "INSERT INTO command_logs (session_id, timestamp, src_ip, command, response, success, cisco_mode) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (session_id, cmd_time.isoformat(), src_ip, cmd_name, response, 1 if success else 0, mode),
+            (
+                session_id,
+                cmd_time.isoformat(),
+                src_ip,
+                cmd_name,
+                response,
+                1 if success else 0,
+                mode,
+            ),
         )
         cmd_time += timedelta(seconds=random.randint(2, 30))
 

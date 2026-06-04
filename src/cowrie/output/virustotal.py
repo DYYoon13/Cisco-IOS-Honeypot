@@ -450,9 +450,9 @@ class Output(cowrie.core.output.Output):
         if d:
             # Log success message on successful response
             d.addCallback(
-                lambda _: log.msg("VT scanurl successful: 200 OK")
-                if _ is not None
-                else None
+                lambda _: (
+                    log.msg("VT scanurl successful: 200 OK") if _ is not None else None
+                )
             )
         return d
 

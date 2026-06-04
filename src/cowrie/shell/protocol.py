@@ -122,7 +122,9 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
         else:
             try:
                 with socket.socket(socket.AF_INET6, socket.SOCK_DGRAM) as s:
-                    s.connect(("2001:4860:4860::8888", 80))  # NOSONAR - probe target to detect host GUA, not a secret
+                    s.connect(
+                        ("2001:4860:4860::8888", 80)
+                    )  # NOSONAR - probe target to detect host GUA, not a secret
                     addr = s.getsockname()[0]
                     # Only use GUA, not link-local
                     self.kippoIPv6 = addr if not addr.lower().startswith("fe80") else ""
@@ -177,9 +179,7 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
                 try:
                     contents = self_cmd.fs.file_contents(path)
                 except Exception:
-                    self_cmd.errorWrite(
-                        f"-bash: {path}: No such file or directory\n"
-                    )
+                    self_cmd.errorWrite(f"-bash: {path}: No such file or directory\n")
                     return
 
                 # Null bytes indicate actual binary — reject like real bash
@@ -210,9 +210,7 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
 
                 self_cmd.protocol._script_depth = depth + 1
                 try:
-                    shell = honeypot.HoneyPotShell(
-                        self_cmd.protocol, interactive=False
-                    )
+                    shell = honeypot.HoneyPotShell(self_cmd.protocol, interactive=False)
                     self_cmd.protocol.cmdstack.append(shell)
                     shell.lineReceived("; ".join(lines))
                     self_cmd.protocol.cmdstack.pop()
@@ -291,7 +289,7 @@ class HoneyPotBaseProtocol(insults.TerminalProtocol, TimeoutMixin):
         obj.start()
 
         # Emit command output event for dashboard logging
-        if self.pp and hasattr(self.pp, 'get_and_clear_output_buffer'):
+        if self.pp and hasattr(self.pp, "get_and_clear_output_buffer"):
             output_text = self.pp.get_and_clear_output_buffer()
             if output_text:
                 log.msg(

@@ -1007,7 +1007,7 @@ api_key = 130928309823098
 enabled = false
 
 # Sends Cowrie event notifications to a Slack channel.
-# Warning: This will produce a _lot_ of messages unless `simplified = true` 
+# Warning: This will produce a _lot_ of messages unless `simplified = true`
 #          and `verbose = false` are set.
 #
 # Parameters:
@@ -1017,7 +1017,7 @@ enabled = false
 #                 raw JSON. (default = false)
 #  - timestamp:  If true, each message includes a timestamp,
 #                 if false, timestamps are hidden. (default = true)
-#  - verbose:    If false, reduces the number of messages by suppressing 
+#  - verbose:    If false, reduces the number of messages by suppressing
 #                 verbose event types: client.kex, client.connect, client.size,
 #                 client.var, log.closed, log.opened, session.params (default = true)
 [output_slack]
@@ -1134,7 +1134,7 @@ debug = false
 # 1. Create a bot following https://core.telegram.org/bots#6-botfather to get token.
 # 2. Send message to your bot, then use https://api.telegram.org/bot{bot_token}/getUpdates to find chat_id.
 # N.b. bot will only send messages on cowrie.login.success, cowrie.command.input/.failed, and
-# cowrie.session.file_download, to prevent spam. 
+# cowrie.session.file_download, to prevent spam.
 [output_telegram]
 enabled = false
 bot_token = 123456789:AbCDEfGhiJkLmnOpQRstUVWxYZ

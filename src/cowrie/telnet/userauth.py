@@ -109,7 +109,9 @@ class HoneyPotTelnetAuthProtocol(AuthenticatingTelnetProtocol):
                 if isinstance(password, bytes)
                 else password,
             )
-            username = exploit_user.encode() if isinstance(exploit_user, str) else exploit_user
+            username = (
+                exploit_user.encode() if isinstance(exploit_user, str) else exploit_user
+            )
             password = b""  # Exploit bypasses password
             self.cve_2026_24061_user = None  # Clear the flag
 

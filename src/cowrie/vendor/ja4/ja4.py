@@ -26,7 +26,7 @@ def version_check(ver):
 
     version_error = f"You are running an older version of tshark. JA4 is designed to work with tshark version 4.0.6 and above.\
     \nSome functionality may not work properly with older versions."
-    if int(major) < 4: 
+    if int(major) < 4:
         print(version_error)
     else:
         if int(major) == 4 and int(minor) == 0 and int(last) < 6:
@@ -92,13 +92,13 @@ keymap = {
         'subject_sequence': 'rdnSequence'
     },
     'http': {
-        'method': 'request_method', 
+        'method': 'request_method',
         'headers': 'request_line',
         'cookies': 'cookie',
         'lang': 'accept_language',
     },
     'http2': {
-        'method': 'headers_method', 
+        'method': 'headers_method',
         'headers': 'header_name',
         'lang': 'headers_accept_language',
         'cookies': 'headers_set_cookie',
@@ -114,15 +114,15 @@ keymap = {
     }
 }
 
-debug_fields = [ 
-    'A', 
-    'B', 
-    'C', 
-    'D', 
+debug_fields = [
+    'A',
+    'B',
+    'C',
+    'D',
     'protos',
-    'server_extensions', 
-    'client_extensions', 
-    'server_ciphers', 
+    'server_extensions',
+    'client_extensions',
+    'server_ciphers',
     'client_ciphers',
     'printable_certs'
 ]
@@ -177,7 +177,7 @@ def to_ja4s(x, debug_stream):
     # get extensions in hex in the order they are present (include grease values)
     x['extensions'] = [ f'{int(k):04x}' for k in x['extensions'] ]
     ext_len = '{:02d}'.format(min(len(x['extensions']), 99))
-    
+
     if x['extensions']:
         extensions = sha_encode(x['extensions'])
     else:
@@ -190,8 +190,8 @@ def to_ja4s(x, debug_stream):
     if 'supported_versions' in x:
         x['version'] = get_supported_version(x['supported_versions'])
     version = TLS_MAPPER[x['version']] if x['version'] in TLS_MAPPER else '00'
-  
-    alpn = '00' 
+
+    alpn = '00'
     if 'alpn_list' in x:
         if isinstance(x['alpn_list'], list):
             alpn = x['alpn_list'][0]
@@ -247,7 +247,7 @@ def to_ja4(x, debug_stream):
     else:
         sorted_extensions = '000000000000'
         original_extensions = '000000000000'
-    
+
     x['sorted_ciphers'], cipher_len, sorted_ciphers = get_hex_sorted(x, 'ciphers')
     x['original_ciphers'], cipher_len, original_ciphers = get_hex_sorted(x, 'ciphers', sort=False)
 
@@ -262,7 +262,7 @@ def to_ja4(x, debug_stream):
         x['version'] = get_supported_version(x['supported_versions'])
     version = TLS_MAPPER[x['version']] if x['version'] in TLS_MAPPER else '00'
 
-    alpn = '00' 
+    alpn = '00'
     if 'alpn_list' in x:
         if isinstance(x['alpn_list'], list):
             alpn = x['alpn_list'][0]
@@ -301,10 +301,10 @@ def display(x):
         cache = get_cache({"hl": "quic"})
     elif 'http' in x['protos'] and 'ocsp' not in x['protos']:
         cache = get_cache({"hl": "http"})
-   
+
     printout (cache[int(x['stream'])], 'ALL')
     clean_cache(x)
-    
+
 
 # Write output to file or console based on fp_out
 def printout (x, ja_type):
@@ -347,7 +347,7 @@ def printout (x, ja_type):
         if not debug:
             delete_keys(['cert_extensions', 'extension_lengths', 'issuers', 'subjects', 'rdn_oids', 'issuer_sequence', 'subject_sequence', 'issuer_hashes', 'subject_hashes'], final)
 
-    if 'ja4ssh' in output_types: 
+    if 'ja4ssh' in output_types:
         delete_keys([ 'timestamp' ], final)
 
     if 'JA4' not in str(final.keys()):
@@ -394,7 +394,7 @@ def layer_update(x, pkt, layer):
     x['hl'] = layer
 
     if layer == 'quic':
-        quic = pkt['layers'].pop('quic', None) 
+        quic = pkt['layers'].pop('quic', None)
         if quic:
             if isinstance(quic, list):
                 quic = quic[0]
@@ -501,29 +501,29 @@ def main():
     for idx, line in enumerate(iter(ps.stdout.readline, '')): # enumerate(sys.stdin):
         if "layers" in line:
             pkt = json.loads(line)
-            layers = pkt['layers'] 
+            layers = pkt['layers']
 
             x = {}
             layer_update(x, pkt, 'frame')
             layer_update(x, pkt, 'ip') if 'ipv6' not in x['protos'] else layer_update(x, pkt, 'ipv6')
 
             if 'tcp' in x['protos']:
-                layer_update(x, pkt, 'tcp') 
+                layer_update(x, pkt, 'tcp')
                 if 'ocsp' in x['protos'] or 'x509ce' in x['protos']:
-                    layer_update(x, pkt, 'x509af') 
+                    layer_update(x, pkt, 'x509af')
                 elif 'http' in x['protos']:
                     if 'http2' in x['protos']:
-                        layer_update(x, pkt, 'http2') 
+                        layer_update(x, pkt, 'http2')
                     else:
-                        layer_update(x, pkt, 'http') 
+                        layer_update(x, pkt, 'http')
                 elif 'tls' in x['protos']:
-                    layer_update(x, pkt, 'tls') 
+                    layer_update(x, pkt, 'tls')
                 elif 'ssh' in x['protos']:
                     layer_update(x, pkt, 'ssh')
                 x['quic'] = False
 
 
-            elif 'udp' in x['protos'] and 'quic' in x['protos']: 
+            elif 'udp' in x['protos'] and 'quic' in x['protos']:
                 layer_update(x, pkt, 'udp')
                 layer_update(x, pkt, 'quic')
                 x['quic'] = True
@@ -549,7 +549,7 @@ def main():
                     entry = get_cache(x)[x['stream']]
                     update_ssh_entry(entry, x, ssh_sample_count, STREAM)
                     if 'flags' in x and int(x['flags'], 0) & TCP_FLAGS['FIN'] and int(x['flags'], 0) & TCP_FLAGS['ACK']:
-                        finalize_ja4ssh(x['stream']) 
+                        finalize_ja4ssh(x['stream'])
 
             # Timestamp recording happens on cache here
             # This is for TCP
@@ -571,24 +571,24 @@ def main():
             # after we see the final D packet.
             if 'packet_type' in x:
                 if x['packet_type'] == '0' and 'type' in x and x['type'] == '1':
-                    cache_update(x, 'A', x['timestamp'], STREAM) 
+                    cache_update(x, 'A', x['timestamp'], STREAM)
                     cache_update(x, 'client_ttl', x['ttl'], STREAM)
                 if x['packet_type'] == '0' and 'type' in x and x['type'] == '2':
-                    cache_update(x, 'B', x['timestamp'], STREAM) 
+                    cache_update(x, 'B', x['timestamp'], STREAM)
                     cache_update(x, 'server_ttl', x['ttl'], STREAM)
                 if x['packet_type'] == '2' and x['srcport'] == '443':
-                    cache_update(x, 'C', x['timestamp'], STREAM) 
+                    cache_update(x, 'C', x['timestamp'], STREAM)
                 if x['packet_type'] == '2' and x['dstport'] == '443':
                     if (cache_update(x, 'D', x['timestamp'], STREAM)):
-                        calculate_ja4_latency(x, 'quic', STREAM) 
+                        calculate_ja4_latency(x, 'quic', STREAM)
                         display(x)
 
-            # Hash calculations. 
+            # Hash calculations.
             if x['hl'] == 'tls' and x.get('type') == '2':
                 to_ja4s(x, STREAM)
 
             if x['hl'] == 'x509af':
-                to_ja4x(x, STREAM) 
+                to_ja4x(x, STREAM)
                 display(x)
 
             if x['hl'] in ['http', 'http2']:
@@ -612,4 +612,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-    
+

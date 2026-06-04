@@ -15,12 +15,12 @@ from __future__ import annotations
 import json
 
 import treq
+from cowrie._version import __version__
 from twisted.internet import defer
 from twisted.logger._levels import LogLevel
 from twisted.python import log
 
 import cowrie.core.output
-from cowrie._version import __version__
 from cowrie.core.config import CowrieConfig
 
 COWRIE_USER_AGENT = f"Cowrie Honeypot {__version__}".encode("ascii")

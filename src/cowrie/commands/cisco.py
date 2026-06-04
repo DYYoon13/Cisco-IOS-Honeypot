@@ -12,7 +12,6 @@ a Cisco 2951 router running IOS 15.7(3)M5.
 from __future__ import annotations
 
 import random
-import time
 from datetime import datetime, timezone
 
 from cowrie.core.config import CowrieConfig
@@ -24,6 +23,7 @@ commands = {}
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _cisco_hostname() -> str:
     """Return the configured hostname (default: Router)."""
@@ -53,18 +53,28 @@ def _cisco_uptime(protocol) -> str:
 # show  (dispatcher for all "show ..." sub-commands)
 # ---------------------------------------------------------------------------
 
+
 class Command_show(HoneyPotCommand):
     """Cisco IOS 'show' command dispatcher."""
 
     SUBCMDS = (
-        "version", "running-config", "startup-config",
-        "ip", "interfaces", "arp", "clock", "users",
-        "logging", "flash:", "processes", "inventory",
+        "version",
+        "running-config",
+        "startup-config",
+        "ip",
+        "interfaces",
+        "arp",
+        "clock",
+        "users",
+        "logging",
+        "flash:",
+        "processes",
+        "inventory",
     )
 
     def call(self) -> None:
         if not self.args:
-            self.write("% Type \"show ?\" for a list of subcommands\n")
+            self.write('% Type "show ?" for a list of subcommands\n')
             return
 
         sub = self.args[0].lower()
@@ -92,7 +102,7 @@ class Command_show(HoneyPotCommand):
         if handler:
             handler()
         else:
-            self.write(f"% Invalid input detected at '^' marker.\n")
+            self.write("% Invalid input detected at '^' marker.\n")
 
     # -- show version -------------------------------------------------------
     def _show_version(self) -> None:
@@ -137,7 +147,7 @@ Configuration register is 0x2102
 
 Current configuration : 2048 bytes
 !
-! Last configuration change at {datetime.now(timezone.utc).strftime('%H:%M:%S UTC %a %b %d %Y')}
+! Last configuration change at {datetime.now(timezone.utc).strftime("%H:%M:%S UTC %a %b %d %Y")}
 !
 version 15.7
 service timestamps debug datetime msec
@@ -184,7 +194,7 @@ ip forward-protocol nd
 no ip http server
 no ip http secure-server
 !
-ip route 0.0.0.0 0.0.0.0 {ip_addr.rsplit('.', 1)[0]}.254
+ip route 0.0.0.0 0.0.0.0 {ip_addr.rsplit(".", 1)[0]}.254
 !
 ip access-list extended BLOCK_TELNET
  deny   tcp any any eq telnet
@@ -228,7 +238,7 @@ end
         elif ip_sub == "protocols":
             self._show_ip_protocols()
         else:
-            self.write(f"% Invalid input detected at '^' marker.\n")
+            self.write("% Invalid input detected at '^' marker.\n")
 
     def _show_ip_interface_brief(self) -> None:
         ip_addr = getattr(self.protocol, "kippoIP", "192.168.1.1")
@@ -238,7 +248,8 @@ GigabitEthernet0/0         {ip_addr:<15s} YES NVRAM  up                    up
 GigabitEthernet0/1         10.0.0.1        YES NVRAM  up                    up
 GigabitEthernet0/2         unassigned      YES NVRAM  administratively down down
 Serial0/0/0                unassigned      YES NVRAM  administratively down down
-""")
+"""
+        )
 
     def _show_ip_route(self) -> None:
         ip_addr = getattr(self.protocol, "kippoIP", "192.168.1.1")
@@ -262,7 +273,8 @@ C     {network}/24 is directly connected, GigabitEthernet0/0
 L     {ip_addr}/32 is directly connected, GigabitEthernet0/0
 C     10.0.0.0/24 is directly connected, GigabitEthernet0/1
 L     10.0.0.1/32 is directly connected, GigabitEthernet0/1
-""")
+"""
+        )
 
     def _show_ip_protocols(self) -> None:
         self.write("""*** IP Routing is NSF aware ***
@@ -283,33 +295,45 @@ Routing Protocol is "application"
     # -- show interfaces ----------------------------------------------------
     def _show_interfaces(self) -> None:
         ip_addr = getattr(self.protocol, "kippoIP", "192.168.1.1")
-        mac1 = "0026.{:04x}.{:04x}".format(random.randint(0, 0xFFFF), random.randint(0, 0xFFFF))
-        mac2 = "0026.{:04x}.{:04x}".format(random.randint(0, 0xFFFF), random.randint(0, 0xFFFF))
+        mac1 = f"0026.{random.randint(0, 0xFFFF):04x}.{random.randint(0, 0xFFFF):04x}"
+        mac2 = f"0026.{random.randint(0, 0xFFFF):04x}.{random.randint(0, 0xFFFF):04x}"
 
         # If a specific interface was requested
         if len(self.args) >= 2 and self.args[1].lower() not in ("?",):
             iface = " ".join(self.args[1:])
             if "0/0" in iface and "0/1" not in iface and "0/2" not in iface:
-                self._show_single_interface("GigabitEthernet0/0", ip_addr, "255.255.255.0", mac1, True)
+                self._show_single_interface(
+                    "GigabitEthernet0/0", ip_addr, "255.255.255.0", mac1, True
+                )
             elif "0/1" in iface:
-                self._show_single_interface("GigabitEthernet0/1", "10.0.0.1", "255.255.255.0", mac2, True)
+                self._show_single_interface(
+                    "GigabitEthernet0/1", "10.0.0.1", "255.255.255.0", mac2, True
+                )
             elif "0/2" in iface:
-                self._show_single_interface("GigabitEthernet0/2", "unassigned", "", mac2, False)
+                self._show_single_interface(
+                    "GigabitEthernet0/2", "unassigned", "", mac2, False
+                )
             else:
-                self.write(f"% Invalid input detected at '^' marker.\n")
+                self.write("% Invalid input detected at '^' marker.\n")
             return
 
-        self._show_single_interface("GigabitEthernet0/0", ip_addr, "255.255.255.0", mac1, True)
-        self._show_single_interface("GigabitEthernet0/1", "10.0.0.1", "255.255.255.0", mac2, True)
+        self._show_single_interface(
+            "GigabitEthernet0/0", ip_addr, "255.255.255.0", mac1, True
+        )
+        self._show_single_interface(
+            "GigabitEthernet0/1", "10.0.0.1", "255.255.255.0", mac2, True
+        )
 
-    def _show_single_interface(self, name: str, ip: str, mask: str, mac: str, up: bool) -> None:
+    def _show_single_interface(
+        self, name: str, ip: str, mask: str, mac: str, up: bool
+    ) -> None:
         status = "up" if up else "administratively down"
         proto = "up" if up else "down"
         in_pkts = random.randint(100000, 999999) if up else 0
         out_pkts = random.randint(50000, 500000) if up else 0
         self.write(f"""{name} is {status}, line protocol is {proto}
   Hardware is iGbE, address is {mac} ({mac})
-  Internet address is {ip}/{mask if mask else 'unassigned'}
+  Internet address is {ip}/{mask if mask else "unassigned"}
   MTU 1500 bytes, BW 1000000 Kbit/sec, DLY 10 usec,
      reliability 255/255, txload 1/255, rxload 1/255
   Encapsulation ARPA, loopback not set
@@ -339,8 +363,10 @@ Routing Protocol is "application"
     def _show_arp(self) -> None:
         ip_addr = getattr(self.protocol, "kippoIP", "192.168.1.1")
         gateway = ip_addr.rsplit(".", 1)[0] + ".254"
-        mac_gw = "0050.{:04x}.{:04x}".format(random.randint(0, 0xFFFF), random.randint(0, 0xFFFF))
-        mac_self = "0026.{:04x}.{:04x}".format(random.randint(0, 0xFFFF), random.randint(0, 0xFFFF))
+        mac_gw = f"0050.{random.randint(0, 0xFFFF):04x}.{random.randint(0, 0xFFFF):04x}"
+        mac_self = (
+            f"0026.{random.randint(0, 0xFFFF):04x}.{random.randint(0, 0xFFFF):04x}"
+        )
         self.write(f"""Protocol  Address          Age (min)  Hardware Addr   Type   Interface
 Internet  {ip_addr:<16s} -          {mac_self}  ARPA   GigabitEthernet0/0
 Internet  {gateway:<16s} 12         {mac_gw}  ARPA   GigabitEthernet0/0
@@ -460,6 +486,7 @@ PID:                    , VID:     , SN:
 # enable
 # ---------------------------------------------------------------------------
 
+
 class Command_enable(HoneyPotCommand):
     """Cisco IOS 'enable' command — switch to privileged EXEC mode."""
 
@@ -480,6 +507,7 @@ class Command_enable(HoneyPotCommand):
 # disable
 # ---------------------------------------------------------------------------
 
+
 class Command_disable(HoneyPotCommand):
     """Cisco IOS 'disable' — return to user EXEC mode."""
 
@@ -495,6 +523,7 @@ class Command_disable(HoneyPotCommand):
 # configure terminal
 # ---------------------------------------------------------------------------
 
+
 class Command_configure(HoneyPotCommand):
     """Cisco IOS 'configure terminal' — enter global configuration mode."""
 
@@ -506,7 +535,9 @@ class Command_configure(HoneyPotCommand):
             return
 
         if self.args and self.args[0].lower() in ("terminal", "t"):
-            self.write("Enter configuration commands, one per line.  End with CNTL/Z.\n")
+            self.write(
+                "Enter configuration commands, one per line.  End with CNTL/Z.\n"
+            )
             self.protocol.cisco_mode = "config"
             shell = self.protocol.cmdstack[0] if self.protocol.cmdstack else None
             if shell:
@@ -518,6 +549,7 @@ class Command_configure(HoneyPotCommand):
 # ---------------------------------------------------------------------------
 # exit / end / logout
 # ---------------------------------------------------------------------------
+
 
 class Command_cisco_exit(HoneyPotCommand):
     """Cisco IOS 'exit' — exit current mode or disconnect."""
@@ -539,6 +571,7 @@ class Command_cisco_exit(HoneyPotCommand):
             # User EXEC mode — disconnect
             from twisted.internet import error as ierror
             from twisted.python import failure
+
             stat = failure.Failure(ierror.ProcessDone(status=""))
             self.protocol.terminal.transport.processEnded(stat)
             return
@@ -558,6 +591,7 @@ class Command_end(HoneyPotCommand):
 # ---------------------------------------------------------------------------
 # write memory / copy running-config startup-config
 # ---------------------------------------------------------------------------
+
 
 class Command_write(HoneyPotCommand):
     """Cisco IOS 'write' command."""
@@ -584,6 +618,7 @@ Erase of nvram: complete
 # copy
 # ---------------------------------------------------------------------------
 
+
 class Command_copy(HoneyPotCommand):
     """Cisco IOS 'copy' command stub."""
 
@@ -592,12 +627,14 @@ class Command_copy(HoneyPotCommand):
             src = self.args[0].lower()
             dst = self.args[1].lower()
             if "running" in src and "startup" in dst:
-                self.write("Destination filename [startup-config]? \n"
-                           "Building configuration...\n[OK]\n")
+                self.write(
+                    "Destination filename [startup-config]? \n"
+                    "Building configuration...\n[OK]\n"
+                )
             elif "startup" in src and "running" in dst:
                 self.write("Destination filename [running-config]? \n")
             else:
-                self.write(f"% Unknown copy source or destination.\n")
+                self.write("% Unknown copy source or destination.\n")
         else:
             self.write("% Incomplete command.\n")
 
@@ -606,11 +643,12 @@ class Command_copy(HoneyPotCommand):
 # reload
 # ---------------------------------------------------------------------------
 
+
 class Command_reload(HoneyPotCommand):
     """Cisco IOS 'reload' command — simulates a router reload."""
 
     def call(self) -> None:
-        self.write("""System configuration has been modified. Save? [yes/no]: 
+        self.write("""System configuration has been modified. Save? [yes/no]:
 Proceed with reload? [confirm]
 
 *Jun  3 12:00:00.000: %SYS-5-RELOAD: Reload requested by console. Reload Reason: Reload Command.
@@ -618,6 +656,7 @@ Proceed with reload? [confirm]
         # Disconnect the session to simulate the reload
         from twisted.internet import error as ierror
         from twisted.python import failure
+
         stat = failure.Failure(ierror.ProcessDone(status=""))
         self.protocol.terminal.transport.processEnded(stat)
 
@@ -625,6 +664,7 @@ Proceed with reload? [confirm]
 # ---------------------------------------------------------------------------
 # ping  (Cisco-style)
 # ---------------------------------------------------------------------------
+
 
 class Command_cisco_ping(HoneyPotCommand):
     """Cisco IOS 'ping' command — Cisco-style output."""
@@ -634,6 +674,7 @@ class Command_cisco_ping(HoneyPotCommand):
 
     def valid_ip(self, address: str) -> bool:
         import socket
+
         try:
             socket.inet_aton(address)
         except Exception:
@@ -657,15 +698,14 @@ class Command_cisco_ping(HoneyPotCommand):
             if self.valid_ip(host):
                 ip = host
             else:
-                self.write(f"% Unrecognized host or address, or protocol not running.\n")
+                self.write("% Unrecognized host or address, or protocol not running.\n")
                 self.exit()
                 return
         else:
             import hashlib
+
             s = hashlib.md5(host.encode("utf-8")).hexdigest()
-            ip = ".".join(
-                [str(int(x, 16)) for x in (s[0:2], s[2:4], s[4:6], s[6:8])]
-            )
+            ip = ".".join([str(int(x, 16)) for x in (s[0:2], s[2:4], s[4:6], s[6:8])])
 
         # Cisco ping sends 5 probes by default
         count = 5
@@ -685,6 +725,7 @@ class Command_cisco_ping(HoneyPotCommand):
 # traceroute  (Cisco-style)
 # ---------------------------------------------------------------------------
 
+
 class Command_traceroute(HoneyPotCommand):
     """Cisco IOS 'traceroute' command."""
 
@@ -703,9 +744,7 @@ class Command_traceroute(HoneyPotCommand):
             ip = host
         else:
             s = hashlib.md5(host.encode("utf-8")).hexdigest()
-            ip = ".".join(
-                [str(int(x, 16)) for x in (s[0:2], s[2:4], s[4:6], s[6:8])]
-            )
+            ip = ".".join([str(int(x, 16)) for x in (s[0:2], s[2:4], s[4:6], s[6:8])])
 
         gw = getattr(self.protocol, "kippoIP", "192.168.1.1")
         gateway = gw.rsplit(".", 1)[0] + ".254"
@@ -726,6 +765,7 @@ class Command_traceroute(HoneyPotCommand):
 # terminal
 # ---------------------------------------------------------------------------
 
+
 class Command_terminal(HoneyPotCommand):
     """Cisco IOS 'terminal' command (e.g. terminal length 0)."""
 
@@ -737,6 +777,7 @@ class Command_terminal(HoneyPotCommand):
 # ---------------------------------------------------------------------------
 # no  (stub for config mode)
 # ---------------------------------------------------------------------------
+
 
 class Command_no(HoneyPotCommand):
     """Cisco IOS 'no' prefix — stub that accepts any config negation."""
@@ -751,6 +792,7 @@ class Command_no(HoneyPotCommand):
 # ---------------------------------------------------------------------------
 # hostname  (config mode command)
 # ---------------------------------------------------------------------------
+
 
 class Command_hostname(HoneyPotCommand):
     """Cisco IOS 'hostname' config command."""
@@ -773,6 +815,7 @@ class Command_hostname(HoneyPotCommand):
 # ---------------------------------------------------------------------------
 # interface  (config mode stub)
 # ---------------------------------------------------------------------------
+
 
 class Command_interface(HoneyPotCommand):
     """Cisco IOS 'interface' config command — stub."""
@@ -797,6 +840,7 @@ class Command_interface(HoneyPotCommand):
 # ip (config mode stub)
 # ---------------------------------------------------------------------------
 
+
 class Command_ip(HoneyPotCommand):
     """Cisco IOS 'ip' config command — stub that silently accepts."""
 
@@ -809,6 +853,7 @@ class Command_ip(HoneyPotCommand):
 # ---------------------------------------------------------------------------
 # ? (help)
 # ---------------------------------------------------------------------------
+
 
 class Command_question(HoneyPotCommand):
     """Cisco IOS '?' — context-sensitive help."""

@@ -21,14 +21,13 @@ from flask import Flask, g, jsonify, request, send_from_directory
 app = Flask(__name__, static_folder="static", static_url_path="")
 
 # Database path — override via DASHBOARD_DB_FILE environment variable
-DB_FILE = os.environ.get(
-    "DASHBOARD_DB_FILE", "var/lib/cowrie/dashboard.db"
-)
+DB_FILE = os.environ.get("DASHBOARD_DB_FILE", "var/lib/cowrie/dashboard.db")
 
 
 # ---------------------------------------------------------------------------
 # Database helpers
 # ---------------------------------------------------------------------------
+
 
 def get_db() -> sqlite3.Connection:
     """Open a database connection per-request and cache it in Flask's `g`."""
@@ -74,6 +73,7 @@ def _pagination() -> tuple[int, int]:
 # Static file serving
 # ---------------------------------------------------------------------------
 
+
 @app.route("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
@@ -82,6 +82,7 @@ def index():
 # ---------------------------------------------------------------------------
 # API — Overview Stats
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/stats/overview")
 def stats_overview():
@@ -113,7 +114,9 @@ def stats_overview():
 
     # Total commands (join with sessions for filtering)
     if where:
-        cmd_where = where_sql.replace("start_time", "s.start_time").replace("src_ip", "s.src_ip")
+        cmd_where = where_sql.replace("start_time", "s.start_time").replace(
+            "src_ip", "s.src_ip"
+        )
         total_commands = db.execute(
             f"SELECT COUNT(*) FROM command_logs c JOIN sessions s ON c.session_id = s.id{cmd_where}",
             params,
@@ -132,18 +135,21 @@ def stats_overview():
         "SELECT COUNT(*) FROM sessions WHERE start_time >= ?", (today,)
     ).fetchone()[0]
 
-    return jsonify({
-        "total_sessions": total_sessions,
-        "unique_ips": unique_ips,
-        "total_commands": total_commands,
-        "active_sessions": active_sessions,
-        "today_sessions": today_sessions,
-    })
+    return jsonify(
+        {
+            "total_sessions": total_sessions,
+            "unique_ips": unique_ips,
+            "total_commands": total_commands,
+            "active_sessions": active_sessions,
+            "today_sessions": today_sessions,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
 # API — Command Statistics
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/stats/commands")
 def stats_commands():
@@ -163,6 +169,7 @@ def stats_commands():
 # ---------------------------------------------------------------------------
 # API — Timeline
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/stats/timeline")
 def stats_timeline():
@@ -193,6 +200,7 @@ def stats_timeline():
 # API — Top IPs
 # ---------------------------------------------------------------------------
 
+
 @app.route("/api/stats/top-ips")
 def stats_top_ips():
     db = get_db()
@@ -206,20 +214,23 @@ def stats_top_ips():
         (limit,),
     ).fetchall()
 
-    return jsonify([
-        {
-            "ip": r["src_ip"],
-            "count": r["cnt"],
-            "first_seen": r["first_seen"],
-            "last_seen": r["last_seen"],
-        }
-        for r in rows
-    ])
+    return jsonify(
+        [
+            {
+                "ip": r["src_ip"],
+                "count": r["cnt"],
+                "first_seen": r["first_seen"],
+                "last_seen": r["last_seen"],
+            }
+            for r in rows
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
 # API — Sessions List
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/sessions")
 def list_sessions():
@@ -246,21 +257,24 @@ def list_sessions():
         [*params, limit, offset],
     ).fetchall()
 
-    total = db.execute(
-        f"SELECT COUNT(*) FROM sessions{where_sql}", params
-    ).fetchone()[0]
+    total = db.execute(f"SELECT COUNT(*) FROM sessions{where_sql}", params).fetchone()[
+        0
+    ]
 
-    return jsonify({
-        "sessions": [dict(r) for r in rows],
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-    })
+    return jsonify(
+        {
+            "sessions": [dict(r) for r in rows],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
 # API — Session Detail
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/sessions/<session_id>")
 def session_detail(session_id: str):
@@ -283,16 +297,19 @@ def session_detail(session_id: str):
         (session_id,),
     ).fetchall()
 
-    return jsonify({
-        "session": dict(session),
-        "commands": [dict(c) for c in commands],
-        "auth_attempts": [dict(a) for a in auth],
-    })
+    return jsonify(
+        {
+            "session": dict(session),
+            "commands": [dict(c) for c in commands],
+            "auth_attempts": [dict(a) for a in auth],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
 # API — Recent Commands (Live Feed)
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/commands/recent")
 def recent_commands():
@@ -312,6 +329,7 @@ def recent_commands():
 # ---------------------------------------------------------------------------
 # API — Auth Attempts
 # ---------------------------------------------------------------------------
+
 
 @app.route("/api/auth-attempts")
 def auth_attempts():
@@ -333,11 +351,13 @@ def auth_attempts():
         "ORDER BY cnt DESC LIMIT 20"
     ).fetchall()
 
-    return jsonify({
-        "attempts": [dict(r) for r in rows],
-        "total": total,
-        "top_combos": [dict(c) for c in combos],
-    })
+    return jsonify(
+        {
+            "attempts": [dict(r) for r in rows],
+            "total": total,
+            "top_combos": [dict(c) for c in combos],
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -352,7 +372,7 @@ if __name__ == "__main__":
         os.chmod(db_dir, 0o777)  # Allow cowrie to write WAL files
 
     init_db()
-    
+
     # Ensure database is writable by cowrie
     if os.path.exists(DB_FILE):
         os.chmod(DB_FILE, 0o666)

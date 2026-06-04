@@ -42,7 +42,7 @@ def process_extra_parameters(entry, x, direction):
 ## we return 1 whenever a new stats entry is added based on the sample rate
 ## This way the caller can print this packet out
 def update_ssh_entry(entry, x, ssh_sample_count, debug_stream=None):
-    
+
     if entry['count'] == 0 and len(entry['stats']) == 0:
         entry['stats'].append(dict(ja4sh_stats))
 
@@ -97,4 +97,4 @@ def to_ja4ssh(x):
         server_acks = e['server_acks']
         hash_value = f'c{mode_client}s{mode_server}_c{client_packets}s{server_packets}_c{client_acks}s{server_acks}'
         x[f'JA4SSH.{idx}'] = hash_value
-        
+

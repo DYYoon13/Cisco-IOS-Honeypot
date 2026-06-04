@@ -55,9 +55,7 @@ def readConfigFile(cfgfile: list[str] | str) -> configparser.ConfigParser:
     """
     parser = EnvironmentConfigParser(interpolation=configparser.ExtendedInterpolation())
     try:
-        parser.read_string(
-            read_data_bytes("etc", "cowrie.cfg.dist").decode("utf-8")
-        )
+        parser.read_string(read_data_bytes("etc", "cowrie.cfg.dist").decode("utf-8"))
     except FileNotFoundError:
         log.msg("Bundled cowrie.cfg.dist not found in cowrie.data")
     parser.read(cfgfile)

@@ -36,7 +36,7 @@ def to_ja4x(x, debug_stream=-1):
     # we need to convert them into hex codes and then use sha256
     if 'extension_lengths' not in x:
         return
-    
+
     x['issuers'] = []
     x['subjects'] = []
     x['issuer_hashes'] = []
@@ -121,7 +121,7 @@ def get_CN_ON(certs, seq):
 def remove_oids(seq, oids):
     for oid in oids:
         seq.remove(oid) if oid in seq else None
-    
 
-    
+
+
 ############ END OF JA4X FUNCTIONS #####################

@@ -144,8 +144,7 @@ class Output(cowrie.core.output.Output):
         ).digest()
         hash64 = base64.b64encode(digest).decode("ascii")
         auth_header = (
-            f"ISC-HMAC-SHA256 Credentials={hash64} "
-            f"Userid={self.userid} Nonce={nonce}"
+            f"ISC-HMAC-SHA256 Credentials={hash64} Userid={self.userid} Nonce={nonce}"
         )
         if self.debug:
             log.msg(f"dshield: authentication header {auth_header}")

@@ -466,7 +466,7 @@ class HoneyPotShell:
                     input=cmd["command"] + " " + " ".join(cmd["rargs"]),
                     format="Command not found: %(input)s",
                 )
-                message = "% Unknown command or computer name, or unable to find computer address\n".encode("utf8")
+                message = b"% Unknown command or computer name, or unable to find computer address\n"
                 redirects = cmd.get("redirects", [])
                 if redirects:
                     temp_pp = PipeProtocol(

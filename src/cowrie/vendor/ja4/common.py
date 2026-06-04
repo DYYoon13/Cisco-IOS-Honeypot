@@ -125,7 +125,7 @@ def epoch_diff(t1, t2):
     dt1 = datetime.fromtimestamp(float(t1))
     dt2 = datetime.fromtimestamp(float(t2))
     return int((dt2-dt1).microseconds/2)
-    
+
 
 # Scan for tls
 def scan_tls(layer):
@@ -141,7 +141,7 @@ def scan_tls(layer):
                 return l
 
 # Get the right signature algorithms
-def get_signature_algorithms(packet): 
+def get_signature_algorithms(packet):
     if 'sig_alg_lengths' in packet and isinstance(packet['sig_alg_lengths'], list):
         alg_lengths = [ int(int(x)/2) for x in packet['sig_alg_lengths'] ]
 
@@ -149,9 +149,9 @@ def get_signature_algorithms(packet):
         idx = 0
         try:
             if extensions.index('13') > extensions.index('35'):
-                idx = 1 
+                idx = 1
         except Exception as e:
             pass
         packet['signature_algorithms'] = packet['signature_algorithms'][alg_lengths[idx]:]
     return [ x for x in packet['signature_algorithms'] if x not in GREASE_TABLE ]
-        
+
