@@ -74,7 +74,7 @@ class Command_show(HoneyPotCommand):
 
     def call(self) -> None:
         if not self.args:
-            self.write('% Type "show ?" for a list of subcommands\n')
+            self.write("% Incomplete command.\n")
             return
 
         sub = self.args[0].lower()
@@ -82,12 +82,9 @@ class Command_show(HoneyPotCommand):
         dispatch = {
             "version": self._show_version,
             "running-config": self._show_running_config,
-            "run": self._show_running_config,
             "startup-config": self._show_startup_config,
-            "start": self._show_startup_config,
             "ip": self._show_ip,
             "interfaces": self._show_interfaces,
-            "int": self._show_interfaces,
             "arp": self._show_arp,
             "clock": self._show_clock,
             "users": self._show_users,
@@ -229,7 +226,7 @@ end
 
         ip_sub = self.args[1].lower()
 
-        if ip_sub in ("interface", "int"):
+        if ip_sub in ("interface",):
             self._show_ip_interface_brief()
         elif ip_sub == "route":
             self._show_ip_route()
@@ -534,7 +531,7 @@ class Command_configure(HoneyPotCommand):
             self.write("% Unrecognized command\n")
             return
 
-        if self.args and self.args[0].lower() in ("terminal", "t"):
+        if self.args and self.args[0].lower() == "terminal":
             self.write(
                 "Enter configuration commands, one per line.  End with CNTL/Z.\n"
             )
@@ -597,9 +594,9 @@ class Command_write(HoneyPotCommand):
     """Cisco IOS 'write' command."""
 
     def call(self) -> None:
-        if self.args and self.args[0].lower() in ("memory", "mem"):
+        if self.args and self.args[0].lower() == "memory":
             self.write("Building configuration...\n[OK]\n")
-        elif self.args and self.args[0].lower() in ("terminal", "term"):
+        elif self.args and self.args[0].lower() == "terminal":
             # write terminal = show running-config
             cmd = Command_show(self.protocol, "running-config")
             cmd.call()
@@ -856,49 +853,412 @@ class Command_ip(HoneyPotCommand):
 
 
 class Command_question(HoneyPotCommand):
-    """Cisco IOS '?' — context-sensitive help."""
+    """Cisco IOS '?' — context-sensitive help (fallback for Enter-based '?')."""
+
+    def call(self) -> None:
+        from cowrie.commands import cisco_cli
+
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        help_text = cisco_cli.get_help("", mode)
+        self.write(help_text)
+
+
+# ---------------------------------------------------------------------------
+# clear
+# ---------------------------------------------------------------------------
+
+
+class Command_clear(HoneyPotCommand):
+    """Cisco IOS 'clear' command stubs."""
 
     def call(self) -> None:
         mode = getattr(self.protocol, "cisco_mode", "user")
-        if mode == "user":
-            self.write("""Exec commands:
-  enable         Turn on privileged commands
-  exit           Exit from the EXEC
-  logout         Exit from the EXEC
-  ping           Send echo messages
-  show           Show running system information
-  traceroute     Trace route to destination
-  terminal       Set terminal line parameters
-""")
-        elif mode == "privileged":
-            self.write("""Exec commands:
-  clear          Reset functions
-  clock          Manage the system clock
-  configure      Enter configuration mode
-  copy           Copy from one file to another
-  debug          Debugging functions (see also 'undebug')
-  disable        Turn off privileged commands
-  enable         Turn on privileged commands
-  exit           Exit from the EXEC
-  logout         Exit from the EXEC
-  no             Negate a command or set its defaults
-  ping           Send echo messages
-  reload         Halt and perform a cold restart
-  show           Show running system information
-  terminal       Set terminal line parameters
-  traceroute     Trace route to destination
-  write          Write running configuration to memory, network, or terminal
-""")
-        elif mode in ("config", "config-if"):
-            self.write("""Configure commands:
-  end            Exit from configure mode
-  exit           Exit from configure mode
-  hostname       Set system's network name
-  interface      Select an interface to configure
-  ip             Global IP configuration subcommands
-  no             Negate a command or set its defaults
-  shutdown       Shutdown the selected interface
-""")
+        if mode not in ("privileged",):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        sub = self.args[0].lower()
+        if sub in ("counters", "counter"):
+            self.write("Clear \"show interface\" counters on all interfaces [confirm]\n")
+        elif sub in ("arp-cache", "arp"):
+            pass  # silently succeed
+        elif sub == "logging":
+            self.write("Clear logging buffer [confirm]\n")
+        elif sub == "ip":
+            pass  # silently succeed
+        elif sub == "line":
+            if len(self.args) >= 2:
+                self.write(" [OK]\n")
+            else:
+                self.write("% Incomplete command.\n")
+        else:
+            self.write("% Invalid input detected at '^' marker.\n")
+
+
+# ---------------------------------------------------------------------------
+# debug / undebug
+# ---------------------------------------------------------------------------
+
+
+class Command_debug(HoneyPotCommand):
+    """Cisco IOS 'debug' command stub."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "privileged":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        sub = " ".join(self.args).lower()
+        if "all" in sub:
+            self.write(
+                "This may severely impact network performance. Continue? (yes/[no]): \n"
+                "All possible debugging has been turned on\n"
+            )
+        else:
+            debug_type = " ".join(self.args)
+            self.write(f"{debug_type} debugging is on\n")
+
+
+class Command_undebug(HoneyPotCommand):
+    """Cisco IOS 'undebug' command stub."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "privileged":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        sub = " ".join(self.args).lower()
+        if "all" in sub:
+            self.write("All possible debugging has been turned off\n")
+        else:
+            debug_type = " ".join(self.args)
+            self.write(f"{debug_type} debugging is off\n")
+
+
+# ---------------------------------------------------------------------------
+# clock set
+# ---------------------------------------------------------------------------
+
+
+class Command_clock(HoneyPotCommand):
+    """Cisco IOS 'clock' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "privileged":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if self.args and self.args[0].lower() == "set":
+            if len(self.args) >= 5:
+                # clock set hh:mm:ss day month year — silently accept
+                pass
+            else:
+                self.write("% Incomplete command.\n")
+        else:
+            self.write("% Incomplete command.\n")
+
+
+# ---------------------------------------------------------------------------
+# shutdown (config-if mode)
+# ---------------------------------------------------------------------------
+
+
+class Command_shutdown(HoneyPotCommand):
+    """Cisco IOS 'shutdown' command for interface config mode."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config-if", "config"):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Simulates shutting down the interface
+        self.write(
+            "*Jun  1 00:00:10.123: %LINK-5-CHANGED: Interface GigabitEthernet0/0, "
+            "changed state to administratively down\n"
+            "*Jun  1 00:00:11.123: %LINEPROTO-5-UPDOWN: Line protocol on Interface "
+            "GigabitEthernet0/0, changed state to down\n"
+        )
+
+
+# ---------------------------------------------------------------------------
+# do (run exec commands from config mode)
+# ---------------------------------------------------------------------------
+
+
+class Command_do(HoneyPotCommand):
+    """Cisco IOS 'do' command — run exec commands from config mode."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config", "config-if"):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        # Resolve abbreviations in privileged exec mode
+        from cowrie.commands import cisco_cli
+
+        resolved, err, _ = cisco_cli.resolve_command_tokens(list(self.args), "privileged")
+        if err:
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Put the resolved command in the pending queue for the shell to process
+        shell = self.protocol.cmdstack[0] if self.protocol.cmdstack else None
+        if shell:
+            shell.cmdpending.append(resolved)
+
+
+# ---------------------------------------------------------------------------
+# description (config-if mode)
+# ---------------------------------------------------------------------------
+
+
+class Command_description(HoneyPotCommand):
+    """Cisco IOS 'description' command for interface config."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config-if",):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept any description
+
+
+# ---------------------------------------------------------------------------
+# duplex / speed (config-if mode stubs)
+# ---------------------------------------------------------------------------
+
+
+class Command_duplex(HoneyPotCommand):
+    """Cisco IOS 'duplex' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config-if",):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        # Silently accept
+
+
+class Command_speed(HoneyPotCommand):
+    """Cisco IOS 'speed' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config-if",):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        # Silently accept
+
+
+# ---------------------------------------------------------------------------
+# switchport (config-if mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_switchport(HoneyPotCommand):
+    """Cisco IOS 'switchport' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config-if",):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept all switchport configs
+
+
+# ---------------------------------------------------------------------------
+# line (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_line(HoneyPotCommand):
+    """Cisco IOS 'line' config command — enters line config sub-mode."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        hostname = _cisco_hostname()
+        shell = self.protocol.cmdstack[0] if self.protocol.cmdstack else None
+        if shell:
+            shell._cisco_prompt = f"{hostname}(config-line)# "
+        self.protocol.cisco_mode = "config"  # keep in config (simplified)
+
+
+# ---------------------------------------------------------------------------
+# service (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_service(HoneyPotCommand):
+    """Cisco IOS 'service' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept all service configs
+
+
+# ---------------------------------------------------------------------------
+# router (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_router(HoneyPotCommand):
+    """Cisco IOS 'router' command — enters router config sub-mode."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        hostname = _cisco_hostname()
+        shell = self.protocol.cmdstack[0] if self.protocol.cmdstack else None
+        if shell:
+            shell._cisco_prompt = f"{hostname}(config-router)# "
+
+
+# ---------------------------------------------------------------------------
+# banner (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_banner(HoneyPotCommand):
+    """Cisco IOS 'banner' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept
+
+
+# ---------------------------------------------------------------------------
+# username (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_username(HoneyPotCommand):
+    """Cisco IOS 'username' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept
+
+
+# ---------------------------------------------------------------------------
+# vlan (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_vlan(HoneyPotCommand):
+    """Cisco IOS 'vlan' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        if not self.args:
+            self.write("% Incomplete command.\n")
+            return
+        hostname = _cisco_hostname()
+        shell = self.protocol.cmdstack[0] if self.protocol.cmdstack else None
+        if shell:
+            shell._cisco_prompt = f"{hostname}(config-vlan)# "
+
+
+# ---------------------------------------------------------------------------
+# access-list (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_access_list(HoneyPotCommand):
+    """Cisco IOS 'access-list' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept
+
+
+# ---------------------------------------------------------------------------
+# snmp-server (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_snmp_server(HoneyPotCommand):
+    """Cisco IOS 'snmp-server' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept
+
+
+# ---------------------------------------------------------------------------
+# spanning-tree (config mode stub)
+# ---------------------------------------------------------------------------
+
+
+class Command_spanning_tree(HoneyPotCommand):
+    """Cisco IOS 'spanning-tree' command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode != "config":
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept
+
+
+# ---------------------------------------------------------------------------
+# logging (config mode stub — separate from show logging)
+# ---------------------------------------------------------------------------
+
+
+class Command_logging_config(HoneyPotCommand):
+    """Cisco IOS 'logging' config command."""
+
+    def call(self) -> None:
+        mode = getattr(self.protocol, "cisco_mode", "user")
+        if mode not in ("config", "config-line"):
+            self.write("% Invalid input detected at '^' marker.\n")
+            return
+        # Silently accept
 
 
 # ---------------------------------------------------------------------------
@@ -909,7 +1269,6 @@ commands["show"] = Command_show
 commands["enable"] = Command_enable
 commands["disable"] = Command_disable
 commands["configure"] = Command_configure
-commands["conf"] = Command_configure
 commands["exit"] = Command_cisco_exit
 commands["logout"] = Command_cisco_exit
 commands["end"] = Command_end
@@ -925,3 +1284,26 @@ commands["hostname"] = Command_hostname
 commands["interface"] = Command_interface
 commands["ip"] = Command_ip
 commands["?"] = Command_question
+
+# New commands for enhanced realism
+commands["clear"] = Command_clear
+commands["debug"] = Command_debug
+commands["undebug"] = Command_undebug
+commands["clock"] = Command_clock
+commands["shutdown"] = Command_shutdown
+commands["do"] = Command_do
+commands["description"] = Command_description
+commands["duplex"] = Command_duplex
+commands["speed"] = Command_speed
+commands["switchport"] = Command_switchport
+commands["line"] = Command_line
+commands["service"] = Command_service
+commands["router"] = Command_router
+commands["banner"] = Command_banner
+commands["username"] = Command_username
+commands["vlan"] = Command_vlan
+commands["access-list"] = Command_access_list
+commands["snmp-server"] = Command_snmp_server
+commands["spanning-tree"] = Command_spanning_tree
+commands["logging"] = Command_logging_config
+

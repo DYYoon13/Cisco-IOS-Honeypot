@@ -415,6 +415,20 @@ class HoneyPotInteractiveProtocol(HoneyPotBaseProtocol, recvline.HistoricRecvLin
         Easier way to implement password input?
         """
         self.resetTimeout()  # Reset the idle timeout
+
+        # Cisco IOS '?' inline help — triggers immediately on keypress
+        if ch == b"?" and not self.password_input:
+            shell = self.cmdstack[0] if self.cmdstack else None
+            if shell and getattr(shell, "_cisco_prompt", None) is not None:
+                # Get current line buffer content (what user typed before '?')
+                line_str = b"".join(self.lineBuffer).decode("utf-8", errors="replace")
+                # Clear the line buffer since we'll redisplay it
+                self.lineBuffer = []
+                self.lineBufferIndex = 0
+                # Delegate to the shell's Cisco help handler
+                shell.cisco_handle_question(line_str)
+                return
+
         if self.mode == "insert":
             self.lineBuffer.insert(self.lineBufferIndex, ch)
         else:

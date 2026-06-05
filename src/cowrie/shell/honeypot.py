@@ -16,6 +16,7 @@ from twisted.internet import error
 from twisted.python import failure, log
 from twisted.python.compat import iterbytes
 
+from cowrie.commands import cisco_cli
 from cowrie.core.config import CowrieConfig
 from cowrie.shell import fs
 from cowrie.shell.parser import CommandParser
@@ -41,11 +42,42 @@ class HoneyPotShell:
         self.lexer: shlex.shlex | None = None
         self.parser = CommandParser()
 
+        # Initialize Cisco IOS mode if the OS is configured as Cisco IOS,
+        # or if the configured prompt looks like a Cisco prompt.
+        is_cisco = False
+        if CowrieConfig.get("shell", "operating_system", fallback="") == "Cisco IOS":
+            is_cisco = True
+            
+        configured_prompt = CowrieConfig.get("honeypot", "prompt", fallback="").strip()
+        if configured_prompt.endswith(">") or configured_prompt.endswith("#"):
+            is_cisco = True
+            
+        if is_cisco:
+            hostname = CowrieConfig.get("honeypot", "hostname", fallback="Router")
+            if not hasattr(protocol, "cisco_mode"):
+                protocol.cisco_mode = "user"
+            self._cisco_prompt = f"{hostname}> "
+
         # this is the first prompt after starting
         self.showPrompt()
 
+    def _is_cisco_mode(self) -> bool:
+        """Check if we are in Cisco IOS CLI mode."""
+        return getattr(self, "_cisco_prompt", None) is not None
+
+    def _get_cisco_mode(self) -> str:
+        """Return the current Cisco CLI mode string."""
+        return getattr(self.protocol, "cisco_mode", "user")
+
     def lineReceived(self, line: str) -> None:
         log.msg(eventid="cowrie.command.input", input=line, format="CMD: %(input)s")
+
+        # ----- Cisco IOS mode: abbreviation resolution & error handling -----
+        if self._is_cisco_mode():
+            self._cisco_lineReceived(line)
+            return
+
+        # ----- Standard Linux shell mode ------------------------------------
         self.lexer = shlex.shlex(instream=line, punctuation_chars=True, posix=True)
         # Add these special characters that are not in the default lexer
         self.lexer.wordchars += "@%{}=$:+^,()`"
@@ -135,6 +167,60 @@ class HoneyPotShell:
             self.runCommand()
         else:
             # if there's no command, display a prompt again
+            self.showPrompt()
+
+    def _cisco_lineReceived(self, line: str) -> None:
+        """
+        Cisco IOS-style line processing:
+        - Resolve abbreviated commands (en -> enable, sh ver -> show version)
+        - Generate Cisco-style error messages with '^' marker
+        - Handle incomplete/ambiguous commands
+        """
+        stripped = line.strip()
+        if not stripped:
+            self.showPrompt()
+            return
+
+        mode = self._get_cisco_mode()
+
+        # Split into simple tokens (Cisco CLI doesn't use shell quoting)
+        tokens = stripped.split()
+
+        # Resolve abbreviations through the command tree
+        resolved, error_type, error_idx = cisco_cli.resolve_command_tokens(tokens, mode)
+
+        if error_type == "ambiguous":
+            self.protocol.terminal.write(
+                cisco_cli.format_ambiguous_error(stripped).encode("utf-8")
+            )
+            self.showPrompt()
+            return
+
+        if error_type == "invalid":
+            # Calculate the character position of the bad token
+            char_pos = cisco_cli.get_error_char_position(tokens, error_idx, stripped)
+            # Show Cisco-style error with ^ marker
+            marker = " " * char_pos + "^"
+            self.protocol.terminal.write(
+                f"% Invalid input detected at '^' marker.\n\n{stripped}\n{marker}\n".encode("utf-8")
+            )
+            self.showPrompt()
+            return
+
+        # Check if command is valid but incomplete (e.g., "show" with no subcommand)
+        if error_type is None and cisco_cli.command_needs_subcommand(resolved, mode):
+            self.protocol.terminal.write(
+                cisco_cli.format_incomplete_error().encode("utf-8")
+            )
+            self.showPrompt()
+            return
+
+        # Successfully resolved — put the resolved tokens in the pending queue
+        self.cmdpending.append(resolved)
+
+        if self.cmdpending:
+            self.runCommand()
+        else:
             self.showPrompt()
 
     def do_subshell_execution_from_lexer(self) -> None:
@@ -570,6 +656,13 @@ class HoneyPotShell:
             return
 
         line: bytes = b"".join(self.protocol.lineBuffer)
+
+        # ----- Cisco IOS tab completion -----
+        if self._is_cisco_mode():
+            self._cisco_handle_TAB(line)
+            return
+
+        # ----- Standard Linux filesystem tab completion -----
         if line[-1:] == b" ":
             clue = ""
         else:
@@ -648,3 +741,48 @@ class HoneyPotShell:
         self.protocol.lineBuffer = [y for x, y in enumerate(iterbytes(newbyt))]
         self.protocol.lineBufferIndex = len(self.protocol.lineBuffer)
         self.protocol.terminal.write(newbyt)
+
+    def _cisco_handle_TAB(self, line: bytes) -> None:
+        """
+        Cisco IOS-style tab completion:
+        - Single match: expand to full keyword + space
+        - Multiple matches: do nothing (just beep, like real Cisco)
+        - No match: do nothing
+        """
+        line_str = line.decode("utf-8")
+        mode = self._get_cisco_mode()
+
+        completed, candidates = cisco_cli.complete_command(line_str, mode)
+
+        if completed:
+            # Clear the current line from the terminal
+            for _i in range(self.protocol.lineBufferIndex):
+                self.protocol.terminal.cursorBackward()
+                self.protocol.terminal.deleteCharacter()
+
+            newbyt = completed.encode("utf-8")
+            self.protocol.lineBuffer = [y for x, y in enumerate(iterbytes(newbyt))]
+            self.protocol.lineBufferIndex = len(self.protocol.lineBuffer)
+            self.protocol.terminal.write(newbyt)
+        elif len(candidates) > 1:
+            # Multiple matches — Cisco beeps (sends BEL) or shows nothing
+            # Real Cisco IOS just does nothing on Tab with ambiguous input
+            self.protocol.terminal.write(b"\x07")  # BEL character
+        # else: no matches — do nothing
+
+    def cisco_handle_question(self, line_str: str) -> None:
+        """
+        Handle '?' inline help for Cisco IOS mode.
+        Called from protocol.py when '?' is typed.
+        """
+        mode = self._get_cisco_mode()
+        help_text = cisco_cli.get_help(line_str, mode)
+        self.protocol.terminal.write(b"\n")
+        self.protocol.terminal.write(help_text.encode("utf-8"))
+        self.showPrompt()
+        # Re-display what the user had typed before '?'
+        if line_str.strip():
+            line_bytes = line_str.encode("utf-8")
+            self.protocol.terminal.write(line_bytes)
+            self.protocol.lineBuffer = [y for x, y in enumerate(iterbytes(line_bytes))]
+            self.protocol.lineBufferIndex = len(self.protocol.lineBuffer)
