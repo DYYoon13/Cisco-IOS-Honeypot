@@ -69,6 +69,10 @@ class HoneyPotTelnetAuthProtocol(AuthenticatingTelnetProtocol):
         # I need to doubly escape here since my underlying
         # CowrieTelnetTransport hack would remove it and leave just \n
         self.windowSize = [40, 80]
+        configured_prompt = CowrieConfig.get("honeypot", "prompt", fallback="").strip()
+        is_cisco = configured_prompt.endswith(">") or configured_prompt.endswith("#")
+        if is_cisco:
+            self.loginPrompt = b"\r\nUser Access Verification\r\n\r\nUsername: "
         self.transport.write(self.factory.banner.replace(b"\n", b"\r\r\n"))
         self.transport.write(self.loginPrompt)
 
@@ -163,7 +167,12 @@ class HoneyPotTelnetAuthProtocol(AuthenticatingTelnetProtocol):
     def _ebLogin(self, failure):
         # TODO: provide a way to have user configurable strings for wrong password
         self.transport.wontChain(ECHO)
-        self.transport.write(b"\nLogin incorrect\n")
+        configured_prompt = CowrieConfig.get("honeypot", "prompt", fallback="").strip()
+        is_cisco = configured_prompt.endswith(">") or configured_prompt.endswith("#")
+        if is_cisco:
+            self.transport.write(b"\r\n% Login invalid\r\n")
+        else:
+            self.transport.write(b"\nLogin incorrect\n")
         self.transport.write(self.loginPrompt)
         self.state = "User"
 
