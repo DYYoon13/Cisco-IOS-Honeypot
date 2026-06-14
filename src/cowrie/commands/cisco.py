@@ -430,9 +430,8 @@ Cisco IOS Software, C2951 Software (C2951-UNIVERSALK9-M), Version 15.7(3)M5, REL
 2         2903 Jun 01 2020 00:01:00 +00:00 cpconfig-2951x.cfg
 3          720 Jun 01 2020 00:01:00 +00:00 home.shtml
 4       114688 Jun 01 2020 00:01:00 +00:00 home.tar
-5         1038 Jun 01 2020 00:01:00 +00:00 vlan.dat
 
-255619072 bytes available (95834112 bytes used)
+255620110 bytes available (95833074 bytes used)
 """)
 
     # -- show processes -----------------------------------------------------

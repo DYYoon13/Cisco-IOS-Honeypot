@@ -203,7 +203,6 @@ CONFIG_CMDS: dict = {
             "GigabitEthernet": {"help": "GigabitEthernet IEEE 802.3z", "args": "WORD"},
             "Serial": {"help": "Serial interface", "args": "WORD"},
             "Loopback": {"help": "Loopback interface", "args": "<0-2147483647>"},
-            "Vlan": {"help": "Catalyst Vlans", "args": "<1-4094>"},
         },
     },
     "ip": {
@@ -283,7 +282,6 @@ CONFIG_CMDS: dict = {
         },
     },
     "username": {"help": "Establish User Name Authentication", "args": "WORD"},
-    "vlan": {"help": "Vlan commands", "args": "<1-4094>"},
 }
 
 CONFIG_IF_CMDS: dict = {
@@ -327,41 +325,6 @@ CONFIG_IF_CMDS: dict = {
             "1000": {"help": "Force 1000 Mbps operation"},
         },
     },
-    "switchport": {
-        "help": "Set switching mode characteristics",
-        "sub": {
-            "access": {
-                "help": "Set access mode characteristics of the interface",
-                "sub": {
-                    "vlan": {"help": "Set VLAN when interface is in access mode", "args": "WORD"},
-                },
-            },
-            "mode": {
-                "help": "Set trunking mode of the interface",
-                "sub": {
-                    "access": {"help": "Set trunking mode to ACCESS unconditionally"},
-                    "trunk": {"help": "Set trunking mode to TRUNK unconditionally"},
-                },
-            },
-            "trunk": {
-                "help": "Set trunking characteristics when interface is in trunking mode",
-                "sub": {
-                    "allowed": {
-                        "help": "Set allowed VLAN characteristics",
-                        "sub": {
-                            "vlan": {"help": "Set VLANs allowed", "args": "WORD"},
-                        },
-                    },
-                    "native": {
-                        "help": "Set trunking native characteristics",
-                        "sub": {
-                            "vlan": {"help": "Set native VLAN", "args": "WORD"},
-                        },
-                    },
-                },
-            },
-        },
-    },
 }
 
 # Map mode names to their command trees
@@ -403,6 +366,28 @@ def resolve_abbreviation(partial: str, candidates: dict) -> tuple[str | None, li
     return None, matches
 
 
+def preprocess_cisco_tokens(tokens: list[str]) -> list[str]:
+    """
+    Preprocess tokens to split interface names if adjacent (e.g. g0/0 -> g 0/0).
+    """
+    import re
+    new_tokens = []
+    idx = 0
+    while idx < len(tokens):
+        tok = tokens[idx]
+        new_tokens.append(tok)
+        if tok.lower().startswith("int") and "interface".startswith(tok.lower()) and idx + 1 < len(tokens):
+            next_tok = tokens[idx + 1]
+            match = re.match(r"^([a-zA-Z]+)([0-9./]+)$", next_tok)
+            if match:
+                new_tokens.append(match.group(1))
+                new_tokens.append(match.group(2))
+                idx += 2
+                continue
+        idx += 1
+    return new_tokens
+
+
 def resolve_command_tokens(tokens: list[str], mode: str) -> tuple[list[str], str | None, int]:
     """
     Walk the command tree resolving each abbreviated token.
@@ -416,6 +401,8 @@ def resolve_command_tokens(tokens: list[str], mode: str) -> tuple[list[str], str
       "invalid"     — a token matched nothing
       "incomplete"  — command is valid so far but needs more tokens
     """
+    tokens = preprocess_cisco_tokens(tokens)
+
     tree = MODE_TREES.get(mode, USER_EXEC_CMDS)
     resolved: list[str] = []
     current_level = tree
@@ -479,7 +466,7 @@ def complete_command(line: str, mode: str) -> tuple[str | None, list[str]]:
     - If no match → returns None and empty list
     """
     tree = MODE_TREES.get(mode, USER_EXEC_CMDS)
-    tokens = line.split()
+    tokens = preprocess_cisco_tokens(line.split())
 
     if not tokens:
         return None, list(tree.keys())
@@ -564,7 +551,7 @@ def get_help(line: str, mode: str) -> str:
     If line has a partial token → list matching commands.
     """
     tree = MODE_TREES.get(mode, USER_EXEC_CMDS)
-    tokens = line.split()
+    tokens = preprocess_cisco_tokens(line.split())
     trailing_space = line.endswith(" ") if line else True
 
     if not tokens or (not line.strip()):
