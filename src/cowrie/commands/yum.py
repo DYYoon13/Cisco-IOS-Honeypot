@@ -50,15 +50,14 @@ class Command_yum(HoneyPotCommand):
     @inlineCallbacks
     def start(self):
         self.packages = {}
-        match self.args:
-            case []:
-                yield self.do_help()
-            case ["version", *_]:
-                yield self.do_version()
-            case ["install", *_]:
-                yield self.do_install()
-            case _:
-                self.do_locked()
+        if not self.args:
+            yield self.do_help()
+        elif self.args[0] == "version":
+            yield self.do_version()
+        elif self.args[0] == "install":
+            yield self.do_install()
+        else:
+            self.do_locked()
 
     def sleep(self, time: float, time2: float | None = None) -> defer.Deferred:
         d: defer.Deferred = defer.Deferred()

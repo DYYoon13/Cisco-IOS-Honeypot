@@ -70,6 +70,7 @@ class Command_show(HoneyPotCommand):
         "flash:",
         "processes",
         "inventory",
+        "cdp",
     )
 
     def call(self) -> None:
@@ -92,6 +93,7 @@ class Command_show(HoneyPotCommand):
             "flash:": self._show_flash,
             "processes": self._show_processes,
             "inventory": self._show_inventory,
+            "cdp": self._show_cdp,
             "?": self._show_help,
         }
 
@@ -465,6 +467,7 @@ PID:                    , VID:     , SN:
     # -- show ? (help) ------------------------------------------------------
     def _show_help(self) -> None:
         self.write("""  arp              ARP table
+  cdp              CDP information
   clock            Display the system clock
   flash:           Display information about flash: file system
   interfaces       Interface status and configuration
@@ -478,10 +481,110 @@ PID:                    , VID:     , SN:
   version          System hardware and software status
 """)
 
+    # -- show cdp ... -------------------------------------------------------
+    def _show_cdp(self) -> None:
+        """Dispatch show cdp sub-commands."""
+        if len(self.args) < 2:
+            self._show_cdp_run()
+            return
+
+        sub = self.args[1].lower()
+        if sub == "neighbors":
+            if len(self.args) >= 3 and self.args[2].lower() == "detail":
+                self._show_cdp_neighbors_detail()
+            else:
+                self._show_cdp_neighbors()
+        elif sub == "run":
+            self._show_cdp_run()
+        elif sub == "interface":
+            self._show_cdp_interface()
+        else:
+            self.write("% Invalid input detected at '^' marker.\n")
+
+    def _show_cdp_run(self) -> None:
+        """show cdp — global CDP status."""
+        self.write("""Global CDP information:
+        Sending CDP packets every 60 seconds
+        Sending a holdtime value of 180 seconds
+        Sending CDPv2 advertisements is  enabled
+""")
+
+    def _show_cdp_neighbors(self) -> None:
+        """show cdp neighbors — compact neighbor table (Catalyst 2960 + Aironet AP)."""
+        self.write("""Capability Codes: R - Router, T - Trans Bridge, B - Source Route Bridge
+                  S - Switch, H - Host, I - IGMP, r - Repeater, P - Phone,
+                  D - Remote, C - CVTA, M - Two-port Mac Relay
+
+Device ID        Local Intrfce     Holdtme    Capability  Platform  Port ID
+SW-ACCESS-01     Gig 0/1           138             S I   WS-C2960X Gig 0/1
+AP-FLOOR-01      Gig 0/1           112               H   AIR-AP2802I  Gig 0
+
+Total cdp entries displayed : 2
+""")
+
+    def _show_cdp_neighbors_detail(self) -> None:
+        """show cdp neighbors detail — verbose per-device info."""
+        ip_addr = getattr(self.protocol, "kippoIP", "192.168.1.1")
+        lan_net = ip_addr.rsplit(".", 1)[0]
+        self.write(f"""-------------------------
+Device ID: SW-ACCESS-01
+Entry address(es):
+  IP address: {lan_net}.2
+Platform: cisco WS-C2960X-48FPS-L,  Capabilities: Switch IGMP
+Interface: GigabitEthernet0/1,  Port ID (outgoing port): GigabitEthernet0/1
+Holdtime : 138 sec
+
+Version :
+Cisco IOS Software, C2960X Software (C2960X-UNIVERSALK9-M), Version 15.2(7)E3, RELEASE SOFTWARE (fc1)
+Technical Support: http://www.cisco.com/techsupport
+Copyright (c) 1986-2021 by Cisco Systems, Inc.
+Compiled Thu 29-Apr-21 04:53 by prod_rel_team
+
+advertisement version: 2
+VTP Management Domain: ''
+Native VLAN: 1
+Duplex: full
+Management address(es):
+  IP address: {lan_net}.2
+
+-------------------------
+Device ID: AP-FLOOR-01
+Entry address(es):
+  IP address: {lan_net}.10
+Platform: cisco AIR-AP2802I-A-K9,  Capabilities: Host
+Interface: GigabitEthernet0/1,  Port ID (outgoing port): GigabitEthernet0
+Holdtime : 112 sec
+
+Version :
+Cisco AP Software, (ap3g3) Version: 8.10.162.0
+
+advertisement version: 2
+Duplex: full
+Power drawn: 15.400 Watts
+Power request id: 29300, Power management id: 1
+Power request levels are:15400 0 0 0 0
+Management address(es):
+  IP address: {lan_net}.10
+
+""")
+
+    def _show_cdp_interface(self) -> None:
+        """show cdp interface — per-interface CDP status."""
+        self.write("""GigabitEthernet0/0 is up, line protocol is up
+  Encapsulation ARPA
+  Sending CDP packets every 60 seconds
+  Holdtime is 180 seconds
+GigabitEthernet0/1 is up, line protocol is up
+  Encapsulation ARPA
+  Sending CDP packets every 60 seconds
+  Holdtime is 180 seconds
+""")
+
 
 # ---------------------------------------------------------------------------
 # enable
 # ---------------------------------------------------------------------------
+
 
 
 class Command_enable(HoneyPotCommand):

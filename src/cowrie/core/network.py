@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 import ipaddress
 import re
 from collections.abc import Generator

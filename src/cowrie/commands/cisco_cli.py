@@ -57,6 +57,22 @@ USER_EXEC_CMDS: dict = {
                     "protocols": {"help": "IP routing protocol information"},
                 },
             },
+            "cdp": {
+                "help": "CDP information",
+                "can_run_alone": True,
+                "sub": {
+                    "neighbors": {
+                        "help": "CDP neighbor entries",
+                        "can_run_alone": True,
+                        "sub": {
+                            "detail": {"help": "Show detailed information"},
+                        },
+                    },
+                    "interface": {"help": "CDP interface status and configuration"},
+                    "entry": {"help": "Information for specific neighbor entry", "args": "WORD"},
+                    "run": {"help": "CDP protocol running status"},
+                },
+            },
             "logging": {"help": "Show the contents of logging buffers"},
             "processes": {"help": "Active process statistics"},
             "running-config": {"help": "Current operating configuration"},
@@ -153,6 +169,7 @@ PRIVILEGED_EXEC_CMDS: dict = {
     },
     "write": {
         "help": "Write running configuration to memory, network, or terminal",
+        "can_run_alone": True,
         "sub": {
             "erase": {"help": "Erase the startup configuration"},
             "memory": {"help": "Write to NV memory"},
@@ -679,6 +696,9 @@ def command_needs_subcommand(tokens: list[str], mode: str) -> bool:
     tree = MODE_TREES.get(mode, USER_EXEC_CMDS)
     current = tree
 
+    has_args = False
+    can_run_alone = False
+
     for tok in tokens:
         if current is None:
             return False
@@ -687,11 +707,12 @@ def command_needs_subcommand(tokens: list[str], mode: str) -> bool:
             node = current[matched]
             current = node.get("sub")
             has_args = "args" in node
+            can_run_alone = node.get("can_run_alone", False)
         else:
             return False
 
     # If we ended on a node that has sub-commands but no args hint,
-    # the command is incomplete
-    if current and not has_args:
+    # and it is not flagged as can run alone, the command is incomplete
+    if current and not has_args and not can_run_alone:
         return True
     return False

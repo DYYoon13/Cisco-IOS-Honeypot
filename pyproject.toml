@@ -15,7 +15,7 @@ license-files = [ "LICENSE.rst" ]
 authors = [ {name = "Michel Oosterhof", email="michel@oosterhof.net"}, ]
 maintainers = [ {name = "Michel Oosterhof", email="michel@oosterhof.net"}, ]
 keywords=["ssh", "telnet", "honeypot"]
-requires-python = ">=3.10, <4"
+requires-python = ">=3.9, <4"
 readme="README.rst"
 classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -42,8 +42,8 @@ dependencies = [
         "pyasn1_modules==0.4.2",
         "service_identity==24.2.0",
         "treq==25.5.0",
-        "twisted[conch]==26.4.0",
-        "urllib3==2.7.0",
+        "twisted[conch]==24.11.0",
+        "urllib3==2.2.3",
 ]
 
 [project.urls]
